@@ -19,6 +19,7 @@
 #include "dev/uart0.h"
 #include "net/ipv6/uip-ds6-route.h"
 #include "node-id.h"
+#include "dev/button-sensor.h"
 
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
@@ -36,6 +37,9 @@
 
 #define IDOUBLE 8
 
+//George Turn this to 1 for mobile nodes ONLY
+//#define RPL_CONF_LEAF_ONLY 1 //Does not seem to work
+
 #define START_INTERVAL		(15 * CLOCK_SECOND)
 #define SEND_INTERVAL	(PERIOD * CLOCK_SECOND)
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
@@ -43,6 +47,14 @@
 
 static struct uip_udp_conn *client_conn;
 static uip_ipaddr_t server_ipaddr;
+
+/* George: Moved here to be treated as global.
+ * Remember, in sink it already existed as a variable
+ */
+rpl_dag_t *d; 
+
+// RPL current instance to be used in local_repair()
+rpl_instance_t *instance;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client process");
@@ -54,29 +66,19 @@ AUTOSTART_PROCESSES(&udp_client_process,&print_metrics_process);
 extern uint8_t rpl_dio_interval_min;
 extern uint8_t rpl_dio_interval_doublings;
 
+
 static int seq_id;
 static int reply;
-
-// George
-static uint32_t sent_time=0;
 
 static void
 tcpip_handler(void)
 {
   char *str;
-  uint32_t timeDIf =0;
-  
+
   if(uip_newdata()) {
     str = uip_appdata;
     str[uip_datalen()] = '\0';
     reply++;
-	
-	
-	// George RTT
-	if(reply == seq_id){
-		timeDIf = RTIMER_NOW()-sent_time;
-		printf("RPL: RTT: %lu\n",timeDIf);
-	}	
     printf("DATA recv '%s' (s:%d, r:%d)\n", str, seq_id, reply);
   }
 }
@@ -110,6 +112,7 @@ send_packet(void *ptr)
                         &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
 }
 /*---------------------------------------------------------------------------*/
+
 static void
 print_local_addresses(void)
 {
@@ -131,6 +134,7 @@ print_local_addresses(void)
   }
 }
 /*---------------------------------------------------------------------------*/
+
 static void
 set_global_address(void)
 {
@@ -168,6 +172,7 @@ set_global_address(void)
 #endif
 }
 /*---------------------------------------------------------------------------*/
+
 PROCESS_THREAD(udp_client_process, ev, data)
 {
   static struct etimer periodic;
@@ -215,6 +220,14 @@ PROCESS_THREAD(udp_client_process, ev, data)
     if(ev == tcpip_event) {
       tcpip_handler();
     }
+    
+//George ADDED BEHAVIOUR COPIED FROM SINK TO DO LOCAL REPAIRS
+    if (ev == sensors_event && data == &button_sensor) {
+/*********** Trying to resent the instance for this node only *******/		   
+			printf("RPL: Initializing LOCAL repair\n");
+			rpl_local_repair(instance); // Dont forget to reset rpl
+/**********************************************************************/
+    }
 
     if(ev == serial_line_event_message && data != NULL) {
       char *str;
@@ -240,7 +253,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
             r != NULL;
             r = uip_ds6_route_next(r)) {
           nexthop = uip_ds6_route_nexthop(r);
-          PRINTF("Route: %02d -> %02d", r->ipaddr.u8[15], nexthop->u8[15]);
+          PRINTF("Route: %02d -> %02d", 
+          		r->ipaddr.u8[15], nexthop->u8[15]);
           /* PRINT6ADDR(&r->ipaddr); */
           /* PRINTF(" -> "); */
           /* PRINT6ADDR(nexthop); */
@@ -277,20 +291,37 @@ PROCESS_THREAD(print_metrics_process, ev, data){
  
   //variable to be in the same printing round for each node
   static int counter=0;
- 
-  // GET DAG
-  rpl_dag_t *d = rpl_get_any_dag();
 
-/************* Default mode: Imin remains unchanged ***********/
-  //d->instance->dio_intmin = 8;
+/* NODE COLOR:
+ * Remember: you have to use MRHOF2 in order to consider
+ * node coloring. 
+ * The idea is that, if any parent is RED, it is chosen,
+ * Otherwise, normal etx value is considered
+ */
+  node_color = RPL_DAG_MC_LC_WHITE;
+
+  // George current RPL instance
+  instance = d->instance;
+
+/********* Default mode: Imin remains unchanged **********/
+  //d->instance->dio_intmin = 12;
   //d->instance->dio_intcurrent = 8;
   
   //George Idouble will be set from outside. Otherwise it is 8
   d->instance->dio_intdoubl = IDOUBLE;
   
-
   PROCESS_BEGIN();
   PRINTF("Printing Client Metrics...\n");
+
+  SENSORS_ACTIVATE(button_sensor);
+
+/******************** LEAF MODE ***************************/
+	/* mode =2 means LEAF NODE i.e., node does not accept 
+	 * forwarding packets. feather =1 
+	*/
+	//rpl_set_mode(2);
+/******************** LEAF MODE ***************************/	
+		
 
   // 60*CLOCKS_SECOND for rm090 should print every one (1) min
   etimer_set(&periodic_timer, 60*CLOCK_SECOND);
@@ -298,7 +329,8 @@ PROCESS_THREAD(print_metrics_process, ev, data){
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
-   
+	
+	 printf("R:%d, Node COLOR: %d\n",counter,node_color);
 	
     printf("R:%d, DAG-VERSION:%d\n",counter, d->version); 
    // printf("R:%d, DAG-DIO_COUNTER:%d\n",counter, d->instance->dio_counter); 
@@ -308,16 +340,16 @@ PROCESS_THREAD(print_metrics_process, ev, data){
    // printf("R:%d, DAG-DefaultLIFETIME:%d\n",counter, d->instance->default_lifetime); 
    // printf("R:%d, DAG-LIFETIME:%d\n",counter, d->instance->lifetime_unit); 
 	
-
-   printf("R:%d, Imin:%d, Idoubling:%d\n",counter, d->instance->dio_intmin, d->instance->dio_intdoubl);
+    printf("R:%d, Imin:%d, Idoubling:%d\n",
+   	counter, d->instance->dio_intmin, d->instance->dio_intdoubl);
 
     printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
     printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
     
     printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
     printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);
-    
-	//rpl_mode rpl_set_mode(2) leaf mode =2, feather =1 
+
+	 //rpl_mode rpl_set_mode(2) leaf mode =2, feather =1 
     printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());
     
     counter++; //new round of stats
@@ -326,9 +358,4 @@ PROCESS_THREAD(print_metrics_process, ev, data){
 }
 
 /*---------------------------------------------------------------------------*/
-
-
-
-
-
 

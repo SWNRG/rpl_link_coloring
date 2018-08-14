@@ -15,7 +15,7 @@
 #include "node-id.h"   // coral
 
 //#define DEBUG DEBUG_PRINT
-#define DEBUG 0 //George
+#define DEBUG 0 //George: Too many printouts crash cooja
 
 #include "net/ip/uip-debug.h"
 
@@ -32,11 +32,14 @@
 
 static struct uip_udp_conn *server_conn;
 
+rpl_dag_t *dag; // Moved here to be treated as global
+
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_server_process, "UDP server process");
 PROCESS(print_metrics_process, "Printing Server metrics process");
 AUTOSTART_PROCESSES(&udp_server_process,&print_metrics_process);
 /*---------------------------------------------------------------------------*/
+
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -78,7 +81,8 @@ tcpip_handler(void)
            UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
     PRINTF("\n");
     
-    //Printing the node id == RIME Address. We can easily differenciate for mobs later
+    // Printing the node id == RIME Address. 
+    // We can easily differenciate for mobs later
     printf("Msg from Node: %d",
            UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
     printf("\n");
@@ -93,6 +97,8 @@ tcpip_handler(void)
   }
 }
 /*---------------------------------------------------------------------------*/
+
+
 static void
 print_local_addresses(void)
 {
@@ -113,6 +119,8 @@ print_local_addresses(void)
   }
 }
 /*---------------------------------------------------------------------------*/
+
+
 PROCESS_THREAD(udp_server_process, ev, data)
 {
   uip_ipaddr_t ipaddr;
@@ -156,7 +164,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL);
   root_if = uip_ds6_addr_lookup(&ipaddr);
   if(root_if != NULL) {
-    rpl_dag_t *dag;
+
+    //rpl_dag_t *dag; // MOVED AT THE TOP TO BE GLOBAL
+    
     dag = rpl_set_root(RPL_DEFAULT_INSTANCE,(uip_ip6addr_t *)&ipaddr);
     uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 0);
     rpl_set_prefix(dag, &ipaddr, 64);
@@ -184,42 +194,58 @@ PROCESS_THREAD(udp_server_process, ev, data)
   PRINTF(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
          UIP_HTONS(server_conn->rport));
 
+
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
       tcpip_handler();
     } else if (ev == sensors_event && data == &button_sensor) {
-		   printf("RPL: Button pressed. Initiaing global repair\n"); //George
-		   rpl_repair_root(RPL_DEFAULT_INSTANCE);
+/******* YOU CAN CHANGE THE OF BY PRESSING THE SINK'S BUTTON *******/		   
+			if(dag->instance->of->ocp == RPL_OCP_MRHOF2){
+				PRINTF("RPL: Changing OF to RPL_OCP_MRHOF\n");
+				dag->instance->of->ocp = RPL_OCP_MRHOF; // Original MRHOF
+				printf("RPL: New ocp=%u\n",dag->instance->of->ocp);
+			}
+			else if(dag->instance->of->ocp != RPL_OCP_MRHOF2){
+				PRINTF("RPL: Changing OF to RPL_OCP_MRHOF2\n");
+				dag->instance->of->ocp = RPL_OCP_MRHOF2; // link color MRHOF
+				printf("RPL: New ocp=%u\n",dag->instance->of->ocp);
+			}
+			printf("RPL: Sink button pressed. Initiaing global repair\n");
+			rpl_repair_root(RPL_DEFAULT_INSTANCE); // Dont forget to reset rpl
+/*******************************************************************/
     }
   }
 
   PROCESS_END();
 }
 
+
 PROCESS_THREAD(print_metrics_process, ev, data){
   static struct etimer periodic_timer;
  
   //variable to count the printing rounds
   static int counter=0;
- 
-  // GET DAG
-  rpl_dag_t *d = rpl_get_any_dag();
-  
+
   
 /*********** Default mode: Imin stays unchanged ***********/
-  //d->instance->dio_intmin = 8;  //Imin
-  //d->instance->dio_intcurrent = 8;
+  //dag->instance->dio_intmin = 8;  //Imin
+  //dag->instance->dio_intcurrent = 8;
  
  
    //George Idouble will be set from outside. Otherwise it is 8
-   d->instance->dio_intdoubl = IDOUBLE;
-      
-   //playing with colors	
-	//d->instance->mc.obj.lc = 6;//RPL_DAG_MC_LINK_COLOR;
+   dag->instance->dio_intdoubl = IDOUBLE;
 
-	//NODE COLOR defined here
-	node_color = 5; //RPL_DAG_MC_LC_RED;  //5       
+
+/* As root, the color has to be RED, correct?
+ * So, if a child with two RED parents, will chose 
+ * less etx, i.e. the sinl.
+ * If the sink is the only red, it will be chosen, but
+ * yet if a child sees the sink, it has to chosen it 
+ * anyway, right? Even without color, result is the same?
+ * There is no case with no RED color when sink is involved...
+ */
+	node_color = RPL_DAG_MC_LC_RED; //5       
 	  
 	  
   PROCESS_BEGIN();
@@ -236,11 +262,12 @@ PROCESS_THREAD(print_metrics_process, ev, data){
 /******* Objective Function (OF) **************************/	
 	 
 	if(counter == 0){ //Change OF in real time
-	  //d->instance->of->ocp = 1; // MRHOF
+	  //dag->instance->of->ocp = 1; // MRHOF
 
 	  //printf("R:%d, OF_C Changing OF=3\n",counter);
-	  //d->instance->of->ocp = 3; // MRHOF2
-	  
+	  //dag->instance->of->ocp = 3; // MRHOF2
+	  //rpl_repair_root(RPL_DEFAULT_INSTANCE);
+	  	  
 	  // Don't forger to repair the DAG after changing OF
 	  
 	  
@@ -256,32 +283,35 @@ PROCESS_THREAD(print_metrics_process, ev, data){
 	  
 	  
 	  
-	  // DOnt forget to mention that RPL does not check the of after 
+	  // Don't forget to mention that RPL does not check the of after 
 	  // repair. We added the checking OF inside the code...
-	  //rpl_repair_root(RPL_DEFAULT_INSTANCE);
+
 	}
 	
-	if(RPL_OF_OCP != d->instance->of->ocp){ //in case OF changes...
+	if(RPL_OF_OCP != dag->instance->of->ocp){ //in case OF changes...
 		printf("RPL: R:%d, Obj.Func= %u, while RPL_OF_OCP=%d \n", 
-			counter, d->instance->of->ocp,RPL_OF_OCP);
+			counter, dag->instance->of->ocp,RPL_OF_OCP);
 	}else if(counter%10 == 0){ // print the OF every ten rounds....
 
 	 //printf("RPL: variable value RPL_OF_OCP %d\n", RPL_OF_OCP);
-	 printf("RPL: R:%d, Obj.Func: %u\n", counter, d->instance->of->ocp);
+	 printf("RPL: R:%d, Obj.Func: %u\n", counter, dag->instance->of->ocp);
 	}
 /********************************************************/	 
 	
-	printf("R:%d, Node COLOR: %d\n",counter,node_color);
+	 printf("R:%d, Node COLOR: %d\n",counter,node_color);
  
-    printf("R:%d, DAG-VERSION:%d\n",counter, d->version); 
-   // printf("R:%d, DAG-DIO_COUNTER:%d\n",counter, d->instance->dio_counter); 
-   // printf("R:%d, DAG-Imin:%d\n",counter, d->instance->dio_intmin); 
-   // printf("R:%d, DAG-IDOUBLINGS:%d\n",counter, d->instance->dio_intdoubl); 
-   // printf("R:%d, DAG-IminCURRENT:%d\n",counter, d->instance->dio_intcurrent); 
-   // printf("R:%d, DAG-DefaultLIFETIME:%d\n",counter, d->instance->default_lifetime); 
-   // printf("R:%d, DAG-LIFETIME:%d\n",counter, d->instance->lifetime_unit); 
+    printf("R:%d, DAG-VERSION:%d\n",counter, dag->version); 
+   // printf("R:%d, DAG-DIO_COUNTER:%d\n",counter, dag->instance->dio_counter); 
+   // printf("R:%d, DAG-Imin:%d\n",counter, dag->instance->dio_intmin); 
+   // printf("R:%d, DAG-IDOUBLINGS:%d\n",counter, dag->instance->dio_intdoubl); 
+   // printf("R:%d, DAG-IminCURRENT:%d\n",
+   		//counter, dag->instance->dio_intcurrent); 
+   // printf("R:%d, DAG-DefaultLIFETIME:%d\n",
+   		//counter, dag->instance->default_lifetime); 
+   // printf("R:%d, DAG-LIFETIME:%d\n",counter, dag->instance->lifetime_unit); 
 	
-    printf("R:%d, Imin:%d, Idoubling:%d\n",counter, d->instance->dio_intmin, d->instance->dio_intdoubl);
+    printf("R:%d, Imin:%d, Idoubling:%d\n",
+    	counter, dag->instance->dio_intmin, dag->instance->dio_intdoubl);
 
     printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
     printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
