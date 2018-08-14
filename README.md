@@ -3,7 +3,8 @@ Alteration of contiki/rpl to support link color:
 Add the directory rpl into contiki/core/net/rpl and substitute the original. You now have:
 Three (3) objective functions instead of two. 
 The new one is MRHOF2. It is the same like the original MRHOF, but, the basic function best_parent() is altered:
-The basic idea is that if any parent is red color, it is to be chosen, regardless the rank. If both or none parent is red, then etx is calculated as a metric.
+The basic idea is that if any parent is red color, it is to be chosen, regardless the rank. If both or none parent is red, 
+then etx is calculated as a metric.
 To choose this new OF, you should declare it inside the project-conf.h
 #ifndef RPL_CONF_OF_OCP
 #define RPL_CONF_OF_OCP RPL_OCP_MRHOF2 // original is RPL_OCP_MRHOF
@@ -31,5 +32,3 @@ Remember that enabling the Metric Container MC, and definining as Link color (LC
 #ifndef RPL_CONF_DAG_MC
 #define RPL_CONF_DAG_MC RPL_DAG_MC_LC // Enable MC
 #endif 
-
-
