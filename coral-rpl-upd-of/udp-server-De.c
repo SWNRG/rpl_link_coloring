@@ -63,9 +63,9 @@ tcpip_handler(void)
 
 	snprintf(time,i,"%s",(char *)appdata);
 	sprintf(seq_id,"%s",(char *)(appdata+strlen(time)+1));	
-
+	
 	uint32_t timeIn = atol(time);
-	uint32_t timeDif = clock_time()-timeIn;     
+	uint32_t timeDif = clock_time();// clock_time()-timeIn;     
 	PRINTF("RPL: timeIn: %lu, time: %s timeDif:%lu, clock:%lu\n",
 		timeIn, (char *) time, timeDif,clock_time());
 	printf("RPL: Msg No %s from ",seq_id);
@@ -74,7 +74,7 @@ tcpip_handler(void)
 	printf(", timeDif: %u",timeDif);
 	printf("\n");
 /*******************************************************/	
-
+	timeDif =0;
 /*
 	PRINTF("DATA recv '%s' from ", appdata); // PRINTF (Caps) Only for debugging
     PRINTF("%d",

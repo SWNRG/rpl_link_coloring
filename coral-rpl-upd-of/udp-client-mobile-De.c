@@ -37,9 +37,6 @@
 
 #define IDOUBLE 8
 
-//George Turn this to 1 for mobile nodes ONLY
-//#define RPL_CONF_LEAF_ONLY 1 //Does not seem to work
-
 #define START_INTERVAL		(15 * CLOCK_SECOND)
 #define SEND_INTERVAL	(PERIOD * CLOCK_SECOND)
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
@@ -66,28 +63,56 @@ AUTOSTART_PROCESSES(&udp_client_process,&print_metrics_process);
 extern uint8_t rpl_dio_interval_min;
 extern uint8_t rpl_dio_interval_doublings;
 
+// George RTT
+static uint32_t sent_time=0;
+static int rttime; //this will be printed
 
+// George: if they are equal, the message was not lost
 static int seq_id;
 static int reply;
+
 
 static void
 tcpip_handler(void)
 {
   char *str;
+  
+  //George RTT
+  uint32_t timeDIf =0;
 
   if(uip_newdata()) {
     str = uip_appdata;
     str[uip_datalen()] = '\0';
     reply++;
-    printf("DATA recv '%s' (s:%d, r:%d)\n", str, seq_id, reply);
+    
+/* George RTT 
+ * REMEMBER: You don't need to send the time to the 
+ * receiver! Just keep the time the message left, and
+ * when it returns, just measure the RTT. 
+ * Hence, you don't need to syncronize clocks....
+ */
+	if(reply == seq_id){ //msg was not lost...
+		timeDIf = RTIMER_NOW()-sent_time;
+		if (timeDIf < 100000){ //if rtime resets, the number is >>
+			//printf("RPL: RTT: %lu\n",timeDIf);
+			rttime = timeDIf;
+		}
+	}
+/***************************************************************/
+    printf("DATA recvd '%s' (s:%d, r:%d)\n", str, seq_id, reply);
   }
 }
 /*---------------------------------------------------------------------------*/
+
+
+
+
 static void
 send_packet(void *ptr)
 {
   char buf[MAX_PAYLOAD_LEN];
 
+// Remember this is better to be enabled in project-conf.h
 #ifdef SERVER_REPLY
   uint8_t num_used = 0;
   uip_ds6_nbr_t *nbr;
@@ -100,14 +125,27 @@ send_packet(void *ptr)
 
   if(seq_id > 0) {
     ANNOTATE("#A r=%d/%d,color=%s,n=%d %d\n", reply, seq_id,
-             reply == seq_id ? "GREEN" : "RED", uip_ds6_route_num_routes(), num_used);
+             reply == seq_id ? "GREEN" : "RED", 
+             uip_ds6_route_num_routes(), num_used);
   }
 #endif /* SERVER_REPLY */
+
+// George can choose here which node to send to...
 
   seq_id++;
   PRINTF("DATA send to %d 'Hello %d'\n",
          server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
-  sprintf(buf, "Hello %d from the client", seq_id);
+  
+    // George for RTT
+  sent_time = RTIMER_NOW();
+  
+/******* SENDING THE TIME, ALTHOUGH NOT NEEDED !!! **********/ 
+  sprintf(buf, "%lu %d",sent_time, seq_id);
+  printf("RPL: Msg No %d, sent at %lu\n",seq_id, sent_time);
+  PRINTF("RPL: Msg No %d, buf=%s, sent at %lu\n",seq_id, buf, clock_time());
+/************************************************************/  
+  
+  //sprintf(buf, "Hello %d from the client", seq_id); //original
   uip_udp_packet_sendto(client_conn, buf, strlen(buf),
                         &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
 }
@@ -223,10 +261,10 @@ PROCESS_THREAD(udp_client_process, ev, data)
     
 //George ADDED BEHAVIOUR COPIED FROM SINK TO DO LOCAL REPAIRS
     if (ev == sensors_event && data == &button_sensor) {
-/*********** Trying to resent the instance for this node only *******/		   
+/**** Trying to resent the instance for this node only *******/		   
 			printf("RPL: Initializing LOCAL repair\n");
 			rpl_local_repair(instance); // Dont forget to reset rpl
-/**********************************************************************/
+/***************************************************************/
     }
 
     if(ev == serial_line_event_message && data != NULL) {
@@ -298,9 +336,10 @@ PROCESS_THREAD(print_metrics_process, ev, data){
  * The idea is that, if any parent is RED, it is chosen,
  * Otherwise, normal etx value is considered
  */
-  node_color = RPL_DAG_MC_LC_RED;
+  node_color = RPL_DAG_MC_LC_RED; //5
 
-  // George current RPL instance
+
+  // George current RPL instance: To be used in local_repair()
   instance = d->instance;
 
 /********* Default mode: Imin remains unchanged **********/
@@ -314,6 +353,7 @@ PROCESS_THREAD(print_metrics_process, ev, data){
   PRINTF("Printing Client Metrics...\n");
 
   SENSORS_ACTIVATE(button_sensor);
+
 
 /******************** LEAF MODE ***************************/
 	/* mode =2 means LEAF NODE i.e., node does not accept 
@@ -349,6 +389,8 @@ PROCESS_THREAD(print_metrics_process, ev, data){
     printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
     printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);
 
+	 printf("R:%d, RTT: %d\n",counter,rttime);
+	 
 	 //rpl_mode rpl_set_mode(2) leaf mode =2, feather =1 
     printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());
     

@@ -47,6 +47,12 @@
 #define RPL_CONF_OF_OCP RPL_OCP_MRHOF2 // original is RPL_OCP_MRHOF
 #endif 
 
+/* George: Server sents back each received message.
+ * needed to measure RTT time.
+ */
+#ifndef SERVER_REPLY
+#define SERVER_REPLY 1 // Enable/Disable
+#endif 
 
 #ifndef WITH_NON_STORING
 #define WITH_NON_STORING 0 /* Set this to run with non-storing mode */
