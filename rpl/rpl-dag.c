@@ -1322,10 +1322,17 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
 
 	// Dont forget to mention that RPL Lacks the mechanism of altering OF dynamically
 	
-	//printf("RPL: Added the rpl_find_of(dio->ocp) command in globalr repair\n");
+	printf("RPL: Added the rpl_find_of(dio->ocp) command in globalr repair");
 	
 	// George Changing OF !!! It works !!!!!!!!!!!!!!!!!!!!	  
   dag->instance->of = rpl_find_of(dio->ocp);
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -1394,8 +1401,6 @@ rpl_local_repair(rpl_instance_t *instance)
   RPL_STAT(rpl_stats.local_repairs++);
 }
 /*---------------------------------------------------------------------------*/
-
-
 void
 rpl_recalculate_ranks(void)
 {

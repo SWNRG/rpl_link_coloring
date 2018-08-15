@@ -224,10 +224,8 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
     }
   }
 
-  PRINTF("RPL: Inside original MRHOF, Return etx parent\n");
   return p1_cost < p2_cost ? p1 : p2;
 }
-
 /*---------------------------------------------------------------------------*/
 static rpl_dag_t *
 best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
@@ -243,7 +241,6 @@ best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
   return d1->rank < d2->rank ? d1 : d2;
 }
 /*---------------------------------------------------------------------------*/
-
 #if !RPL_WITH_MC
 static void
 update_metric_container(rpl_instance_t *instance)
@@ -301,7 +298,6 @@ update_metric_container(rpl_instance_t *instance)
 }
 #endif /* RPL_WITH_MC */
 /*---------------------------------------------------------------------------*/
-
 rpl_of_t rpl_mrhof = {
   reset,
 #if RPL_WITH_DAO_ACK

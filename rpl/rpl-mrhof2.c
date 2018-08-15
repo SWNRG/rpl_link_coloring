@@ -299,15 +299,13 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
   		&& p2->mc.obj.lc != RPL_DAG_MC_LC_RED ){ 
 	 printf("RPL: ");
 	 printShortaddr(rpl_get_parent_ipaddr(p1));
-	 printf(" chosen because of RED color. Rank:%5u. LC:%d\n",
-	 	p1->rank,p1->mc.obj.lc);
+	 printf(" chosen. Rank: %5u. LC: %d\n",p1->rank,p1->mc.obj.lc);
   	 return p1;
   }else if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED 
   		&& p2->mc.obj.lc == RPL_DAG_MC_LC_RED) {
 	 printf("RPL: ");
 	 printShortaddr(rpl_get_parent_ipaddr(p2));
-	 printf(" chosen because of RED color. Rank:%5u. LC:%d\n",
-	 	p2->rank,p2->mc.obj.lc);
+	 printf(" chosen. Rank: %5u. LC: %d\n",p2->rank,p1->mc.obj.lc);
   	 return p2;
   }else if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED 
   		&& p2->mc.obj.lc != RPL_DAG_MC_LC_RED ){
