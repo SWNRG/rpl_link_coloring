@@ -1318,23 +1318,11 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
 {
   rpl_parent_t *p;
 
-
-
-	// Dont forget to mention that RPL Lacks the mechanism of altering OF dynamically
-	
-	printf("RPL: Added the rpl_find_of(dio->ocp) command in globalr repair");
+  // Dont forget to mention that RPL Lacks the mechanism of altering OF dynamically
+  printf("RPL: Running the rpl_find_of(dio->ocp) command inside globalr repair\n");
 	
 	// George Changing OF !!! It works !!!!!!!!!!!!!!!!!!!!	  
   dag->instance->of = rpl_find_of(dio->ocp);
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   remove_parents(dag, 0);
   dag->version = dio->version;

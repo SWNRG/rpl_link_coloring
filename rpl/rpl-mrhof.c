@@ -92,7 +92,7 @@ to the threshold of 96 in the non-squared case) */
 static void
 reset(rpl_dag_t *dag)
 {
-  PRINTF("RPL: Reset MRHOF\n");
+  PRINTF("RPL: Reset MRHOF was initiated\n");
 }
 /*---------------------------------------------------------------------------*/
 #if RPL_WITH_DAO_ACK
@@ -113,6 +113,7 @@ dao_ack_callback(rpl_parent_t *p, int status)
   }
 }
 #endif /* RPL_WITH_DAO_ACK */
+
 /*---------------------------------------------------------------------------*/
 static uint16_t
 parent_link_metric(rpl_parent_t *p)
