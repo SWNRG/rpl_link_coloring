@@ -44,12 +44,13 @@
 #define MAX_PAYLOAD_LEN		30
 
 static struct uip_udp_conn *client_conn;
-static uip_ipaddr_t server_ipaddr;
+
+static uip_ipaddr_t server_ipaddr; //this shoudl be the localhost???
 
 //to emulate here the "server" reply
 static struct uip_udp_conn *server_conn;
-#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
+#define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
 /* George: Moved here to be treated as global.
  * Remember, in sink it already existed as a variable
@@ -76,13 +77,13 @@ print_local_addresses(void)
   int i;
   uint8_t state;
 
-  PRINTF("Client IPv6 addresses: ");
+  printf("Server node local IPv6 addresses: ");
   for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
     state = uip_ds6_if.addr_list[i].state;
     if(uip_ds6_if.addr_list[i].isused &&
        (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
+      print6addr(&uip_ds6_if.addr_list[i].ipaddr);
+      printf("\n");
       /* hack to make address "final" */
       if (state == ADDR_TENTATIVE) {
 	uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
@@ -101,32 +102,20 @@ set_global_address(void)
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
-/* The choice of server address determines its 6LoWPAN header compression.
- * (Our address will be compressed Mode 3 since it is derived from our
- * link-local address)
- * Obviously the choice made here must also be selected in udp-server.c.
- *
- * For correct Wireshark decoding using a sniffer, add the /64 prefix to the
- * 6LowPAN protocol preferences,
- * e.g. set Context 0 to fd00::. At present Wireshark copies Context/128 and
- * then overwrites it.
- * (Setting Context 0 to fd00::1111:2222:3333:4444 will report a 16 bit
- * compressed address of fd00::1111:22ff:fe33:xxxx)
- *
- * Note the IPCMV6 checksum verification depends on the correct uncompressed
- * addresses.
- */
- 
-#if 0
-/* Mode 1 - 64 bits inline */
-   uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 1);
-#elif 1
-/* Mode 2 - 16 bits inline */
-  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 1);
-#else
-/* Mode 3 - derived from server link-local (MAC) address */
-  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0x0250, 0xc2ff, 0xfea8, 0xcd1a); //redbee-econotag
-#endif
+  
+  uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 2);  // Changed last number from 1 to 2 
+
+  // added behaviour for both ipaddr, and server_ipaddr
+  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 2);  // Changed last number from 1 to 2 
+  
+  printf("Server node ipaddr: ");
+  print6addr(&ipaddr);
+  printf("\n");
+  
+  printf("Server node server_ipaddr: ");
+  print6addr(&ipaddr);
+  printf("\n");
+  
 }
 /*---------------------------------------------------------------------------*/
 
@@ -137,12 +126,18 @@ tcpip_handler(void)
   char *appdata;
 
   if(uip_newdata()) {
+
+  	 printf("Server: Custom Node DATA received....\n");
+  	 
     appdata = (char *)uip_appdata;
     appdata[uip_datalen()] = 0;
     
-// Although, this is NOT the server, it should nevertheless, reply    
+// Although, this is NOT the server, it should nevertheless, reply  
 #if SERVER_REPLY
-    printf("Custom Node DATA sending reply\n");
+    printf("Server Node DATA sending reply\n");
+    
+    // what does UIP_IP_BUF do ???
+    
     uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
     uip_udp_packet_send(server_conn, "Reply", sizeof("Reply"));
     uip_create_unspecified(&server_conn->ripaddr);
@@ -150,9 +145,6 @@ tcpip_handler(void)
   }
 }    
     
-    
-    
-
 
 // Threads start here........................
 
@@ -163,6 +155,12 @@ PROCESS_THREAD(udp_client_process, ev, data)
 #if WITH_COMPOWER
   static int print = 0;
 #endif
+
+
+   // Is this needed ???
+  //uip_ipaddr_t ipaddr;
+  //uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 2);
+
 
   PROCESS_BEGIN();
 
@@ -175,19 +173,6 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   print_local_addresses();
 
-  /* new connection with remote host */
-  client_conn = udp_new(NULL, UIP_HTONS(UDP_SERVER_PORT), NULL); 
-  if(client_conn == NULL) {
-    PRINTF("No UDP connection available, exiting the process!\n");
-    PROCESS_EXIT();
-  }
-  udp_bind(client_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
-
-  PRINTF("Created a connection with the server ");
-  PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
-
   /* initialize serial line */
   uart0_set_input(serial_line_input_byte);
   serial_line_init();
@@ -197,20 +182,22 @@ PROCESS_THREAD(udp_client_process, ev, data)
   powertrace_sniff(POWERTRACE_ON);
 #endif
 
-
+  /* The data sink runs with a 100% duty cycle in order to ensure high 
+     packet reception rates. */
+  NETSTACK_MAC.off(1); // George I dont know if this is REALLY needed
 
 /********** Emulate here, the "server" reply ***************/
 /********** Getting ready to receive messages **************/
   server_conn = udp_new(NULL, UIP_HTONS(UDP_CLIENT_PORT), NULL);
   if(server_conn == NULL) {
-    PRINTF("No UDP connection available, exiting the process!\n");
+    printf("No UDP connection available, exiting the process!\n");
     PROCESS_EXIT();
   }
   udp_bind(server_conn, UIP_HTONS(UDP_SERVER_PORT));
-
-  // George Originally PRINTF... all three
-  printf("Created a server connection with remote address ");
-  printShortaddr(&server_conn->ripaddr);
+  
+/******************** Only printouts. Safely disable **********/
+  printf("Created a Server connection with remote node ");
+  print6addr(&server_conn->ripaddr);
   printf(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
          UIP_HTONS(server_conn->rport));
 /*************************************************************/         
@@ -220,11 +207,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
-      
-      
-      
-      //we dont want this either. This is to receive the reply from sink
-      tcpip_handler();
+		
+		
+		// it doesn't come in here yet !!!!!!!!!
+		
+		printf("Server in custom Node: tcpip_event...\n");
+		
+    	tcpip_handler();
     }
 
     
@@ -272,7 +261,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
     }
 
     if(etimer_expired(&periodic)) {
-      etimer_reset(&periodic);
+      	etimer_reset(&periodic);
       
       // George we dont want this node to send messages. Just respond
       //ctimer_set(&backoff_timer, SEND_TIME, send_packet, NULL);
@@ -319,7 +308,8 @@ PROCESS_THREAD(print_metrics_process, ev, data){
     etimer_reset(&periodic_timer);
 
 // print whatever needed here.....
-
+         
+         
     counter++; //new round of stats
   }
   

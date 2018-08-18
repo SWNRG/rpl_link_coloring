@@ -119,7 +119,7 @@ send_packet(void *ptr)
   uint8_t num_used = 0;
   uip_ds6_nbr_t *nbr;
 
-  printf("Inside sender node, with SERVER_REPLY=1\n");
+  PRINTF("Inside sender node, with SERVER_REPLY=1\n");
 
 //const uip_ipaddr_t *uip_ds6_nbr_get_ipaddr(const uip_ds6_nbr_t *nbr);
 //uip_ipaddr_t *nbr_ip = nbr->ipaddr;//uip_ds6_nbr_get_ipaddr(*nbr);
@@ -142,20 +142,16 @@ send_packet(void *ptr)
 #endif /* SERVER_REPLY */
 
   seq_id++;
-   
-  PRINTF("DATA send to %d 'Hello %d'\n",
+   				//George Correct address of the server!!!
+  PRINTF("DATA send to Server %d 'Hello %d'\n",
          server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1], seq_id);
-  
-  //George Correct address of the server!!!
-  PRINTF("server ipaddr: %d\n",server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1] );
-  
-  
-    // George for RTT
+
+  // George for RTT
   sent_time = RTIMER_NOW();
   
 /********* SENDING THE TIME, ALTHOUGH NOT NEEDED !!! **********/ 
   sprintf(buf, "%lu %d",sent_time, seq_id);
-  printf("RPL: Msg No %d, sent at %lu\n",seq_id, sent_time);
+  PRINTF("RPL: Msg No %d, sent at %lu\n",seq_id, sent_time);
   PRINTF("RPL: Msg No %d, buf=%s, sent at %lu\n",seq_id, buf, clock_time());
 /*************************************************************/  
   
@@ -170,6 +166,11 @@ send_packet(void *ptr)
   //sprintf(buf, "Hello %d from the client", seq_id); //original
   uip_udp_packet_sendto(client_conn, buf, strlen(buf),
                         &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
+                        
+  printf("Sent msg to Server node: ");//%d",server_ipaddr.u8[sizeof(server_ipaddr.u8) - 1]);
+  print6addr(&server_ipaddr); // long version
+  printf(", msg= %d \n",seq_id);
+  
 }
 /*---------------------------------------------------------------------------*/
 
@@ -195,6 +196,7 @@ print_local_addresses(void)
 }
 /*---------------------------------------------------------------------------*/
 
+
 static void
 set_global_address(void)
 {
@@ -204,34 +206,15 @@ set_global_address(void)
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
   uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
 
-/* The choice of server address determines its 6LoWPAN header compression.
- * (Our address will be compressed Mode 3 since it is derived from our
- * link-local address)
- * Obviously the choice made here must also be selected in udp-server.c.
- *
- * For correct Wireshark decoding using a sniffer, add the /64 prefix to the
- * 6LowPAN protocol preferences,
- * e.g. set Context 0 to fd00::. At present Wireshark copies Context/128 and
- * then overwrites it.
- * (Setting Context 0 to fd00::1111:2222:3333:4444 will report a 16 bit
- * compressed address of fd00::1111:22ff:fe33:xxxx)
- *
- * Note the IPCMV6 checksum verification depends on the correct uncompressed
- * addresses.
- */
- 
-#if 0
-/* Mode 1 - 64 bits inline */
-   uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0, 0, 1);
-#elif 1
-/* Mode 2 - 16 bits inline */
-  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 1);
-#else
-/* Mode 3 - derived from server link-local (MAC) address */
-  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0x0250, 0xc2ff, 0xfea8, 0xcd1a); //redbee-econotag
-#endif
+  uip_ip6addr(&server_ipaddr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0, 0x00ff, 0xfe00, 2);  // Changed last number from 1 to 2 
+  // If you change this number, it communicates fine with the sink
+
+  printf("Server node IP in client: ");
+  print6addr(&server_ipaddr);
+  printf("\n");
 }
 /*---------------------------------------------------------------------------*/
+
 
 PROCESS_THREAD(udp_client_process, ev, data)
 {
@@ -260,10 +243,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
   }
   udp_bind(client_conn, UIP_HTONS(UDP_CLIENT_PORT)); 
 
-  PRINTF("Created a connection with the server ");
-  PRINT6ADDR(&client_conn->ripaddr);
-  PRINTF(" local/remote port %u/%u\n",
-	UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
+  printf("Created custom conn with Server: ");
+  printShortaddr(&client_conn->ripaddr);
+ // printf(", local addr: ");
+  //printShortaddr(&ipaddr);
+  //PRINT6ADDR(&client_conn->ripaddr);
+  printf(" local/remote port %u/%u\n",
+		UIP_HTONS(client_conn->lport), UIP_HTONS(client_conn->rport));
 
   /* initialize serial line */
   uart0_set_input(serial_line_input_byte);

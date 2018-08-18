@@ -23,8 +23,8 @@
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-#define UDP_CLIENT_PORT	8765
-#define UDP_SERVER_PORT	5678
+#define UDP_CLIENT_PORT 6000 //8765
+#define UDP_SERVER_PORT 7000 //5678
 
 #define UDP_EXAMPLE_ID  190
 
@@ -58,7 +58,7 @@ print_local_addresses(void)
 
 
 /*---------------------------------------------------------------------------*/
-PROCESS(udp_server_process, "sink server process");
+PROCESS(udp_server_process, "Sink Server process");
 PROCESS(print_metrics_process, "Printing Server metrics process");
 AUTOSTART_PROCESSES(&udp_server_process,&print_metrics_process);
 /*---------------------------------------------------------------------------*/
@@ -208,7 +208,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
     if(ev == tcpip_event) {
     
     
-    
+    	printf("sink received msg...\n");
 	// THIS SERVER IS NOT NEEDED TO RECEIVE MSGS    
     
       tcpip_handler(); //Handle the message received...

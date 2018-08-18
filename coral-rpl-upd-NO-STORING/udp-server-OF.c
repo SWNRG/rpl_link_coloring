@@ -23,8 +23,8 @@
 
 #define UIP_IP_BUF   ((struct uip_ip_hdr *)&uip_buf[UIP_LLH_LEN])
 
-#define UDP_CLIENT_PORT	8765
-#define UDP_SERVER_PORT	5678
+#define UDP_CLIENT_PORT 8765
+#define UDP_SERVER_PORT 5678
 
 #define UDP_EXAMPLE_ID  190
 
@@ -38,6 +38,29 @@ rpl_dag_t *dag; // Moved here to be treated as global
 PROCESS(udp_server_process, "UDP server process");
 PROCESS(print_metrics_process, "Printing Server metrics process");
 AUTOSTART_PROCESSES(&udp_server_process,&print_metrics_process);
+/*---------------------------------------------------------------------------*/
+
+
+
+static void
+print_local_addresses(void)
+{
+  int i;
+  uint8_t state;
+
+  PRINTF("Server IPv6 addresses: ");
+  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
+    state = uip_ds6_if.addr_list[i].state;
+    if(state == ADDR_TENTATIVE || state == ADDR_PREFERRED) {
+      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+      PRINTF("\n");
+      /* hack to make address "final" */
+      if (state == ADDR_TENTATIVE) {
+	uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
+      }
+    }
+  }
+}
 /*---------------------------------------------------------------------------*/
 
 
@@ -79,8 +102,9 @@ tcpip_handler(void)
 	   UIP_IP_BUF->srcipaddr.u8[sizeof(UIP_IP_BUF->srcipaddr.u8) - 1]);
 	PRINTF(", timeDif: %u",timeDif);
 	PRINTF("\n");
-/*******************************************************/	
 	timeDif =0;
+/*******************************************************/	
+
 /*
 	PRINTF("DATA recv '%s' from ", appdata); // PRINTF (Caps) Only for debugging
     PRINTF("%d",
@@ -94,34 +118,13 @@ tcpip_handler(void)
     printf("\n");
 */    
 
+// Change the source to destination and send it back !!!
 #if SERVER_REPLY
     PRINTF("DATA sending reply\n");
-    uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr);
+    uip_ipaddr_copy(&server_conn->ripaddr, &UIP_IP_BUF->srcipaddr); //copy A-->B
     uip_udp_packet_send(server_conn, "Reply", sizeof("Reply"));
     uip_create_unspecified(&server_conn->ripaddr);
 #endif
-  }
-}
-/*---------------------------------------------------------------------------*/
-
-
-static void
-print_local_addresses(void)
-{
-  int i;
-  uint8_t state;
-
-  PRINTF("Server IPv6 addresses: ");
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
-    state = uip_ds6_if.addr_list[i].state;
-    if(state == ADDR_TENTATIVE || state == ADDR_PREFERRED) {
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
-      /* hack to make address "final" */
-      if (state == ADDR_TENTATIVE) {
-	uip_ds6_if.addr_list[i].state = ADDR_PREFERRED;
-      }
-    }
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -167,7 +170,9 @@ PROCESS_THREAD(udp_server_process, ev, data)
   uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
 #endif
 
-  uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL);
+  uip_ds6_addr_add(&ipaddr, 0, ADDR_MANUAL); //wtf ???
+  
+  
   root_if = uip_ds6_addr_lookup(&ipaddr);
   if(root_if != NULL) {
 
@@ -195,11 +200,13 @@ PROCESS_THREAD(udp_server_process, ev, data)
   }
   udp_bind(server_conn, UIP_HTONS(UDP_SERVER_PORT));
 
-  // George Originally PRINTF... all three
+/******************** Only printouts. Safely disable **********/
   printf("Created a server connection with remote address ");
   printShortaddr(&server_conn->ripaddr);
   printf(" local/remote port %u/%u\n", UIP_HTONS(server_conn->lport),
          UIP_HTONS(server_conn->rport));
+         UIP_HTONS(server_conn->rport));
+/*************************************************************/ 
 
   while(1) {
     PROCESS_YIELD();
@@ -227,6 +234,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
 }
 
 
+// +++++++++++++ BELOW HERE, JUST PRINTING MESSAGES +++++++++++++
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 PROCESS_THREAD(print_metrics_process, ev, data){
   static struct etimer periodic_timer;
  
@@ -260,6 +269,7 @@ PROCESS_THREAD(print_metrics_process, ev, data){
   
   // 60*CLOCK_SECOND should print for RM090 every one (1)  min
   etimer_set(&periodic_timer, 60*CLOCK_SECOND);
+
 
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
