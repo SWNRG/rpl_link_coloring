@@ -1,0 +1,10 @@
+
+udp-server.c is a normal sink. It receives messages and sends it back,
+if SERVER_REPLY == 1 in proj-conf.h.
+
+
+udp-client-WHITE-SENDTO-SPECIFIC.c has lc==WHITE, plus it sends messages.
+Right now, it can succesfully send to the sink. If you change the receiver's IP, it should be able to send messages to other nodes.
+
+udp-client-RED-MSG-RECEIVER.c is suppose to receive messages and send them
+back, if variable SERVER_REPLY == 1. The code is copied from the sink. 
