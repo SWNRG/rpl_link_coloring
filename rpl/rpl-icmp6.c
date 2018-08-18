@@ -103,6 +103,7 @@ UIP_ICMP6_HANDLER(dao_handler, ICMP6_RPL, RPL_CODE_DAO, dao_input);
 UIP_ICMP6_HANDLER(dao_ack_handler, ICMP6_RPL, RPL_CODE_DAO_ACK, dao_ack_input);
 /*---------------------------------------------------------------------------*/
 
+
 #if RPL_WITH_DAO_ACK
 static uip_ds6_route_t *
 find_route_entry_by_dao_ack(uint8_t seq)
@@ -135,6 +136,8 @@ prepare_for_dao_fwd(uint8_t sequence, uip_ds6_route_t *rep)
   return dao_sequence;
 }
 #endif /* RPL_WITH_STORING */
+
+
 /*---------------------------------------------------------------------------*/
 static int
 get_global_addr(uip_ipaddr_t *addr)
@@ -200,10 +203,11 @@ rpl_icmp6_update_nbr_table(uip_ipaddr_t *from, nbr_table_reason_t reason, void *
       PRINTF("\n");
     }
   }
-
   return nbr;
 }
 /*---------------------------------------------------------------------------*/
+
+
 static void
 dis_input(void)
 {
@@ -254,6 +258,8 @@ if (rpl_get_mode() == 2){ //RPL_LEAF_ONLY
   uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
+
+
 void
 dis_output(uip_ipaddr_t *addr)
 {
@@ -284,6 +290,8 @@ dis_output(uip_ipaddr_t *addr)
   uip_icmp6_send(addr, ICMP6_RPL, RPL_CODE_DIS, 2);
 }
 /*---------------------------------------------------------------------------*/
+
+
 static void
 dio_input(void)
 {
@@ -505,6 +513,7 @@ discard:
 }
 /*---------------------------------------------------------------------------*/
 
+
 /* ================== FORMING DIO ==========================================*/
 void
 dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
@@ -706,8 +715,6 @@ if(rpl_get_mode() == 2){
   }
 }
 //#endif /* RPL_LEAF_ONLY */
-
-
 }
 /*---------------------------------------------------------------------------*/
 
@@ -1232,6 +1239,8 @@ handle_dao_retransmission(void *ptr)
 }
 #endif /* RPL_WITH_DAO_ACK */
 /*---------------------------------------------------------------------------*/
+
+
 void
 dao_output(rpl_parent_t *parent, uint8_t lifetime)
 {
@@ -1271,12 +1280,16 @@ dao_output(rpl_parent_t *parent, uint8_t lifetime)
   dao_output_target(parent, &prefix, lifetime);
 }
 /*---------------------------------------------------------------------------*/
+
+
 void
 dao_output_target(rpl_parent_t *parent, uip_ipaddr_t *prefix, uint8_t lifetime)
 {
   dao_output_target_seq(parent, prefix, lifetime, dao_sequence);
 }
 /*---------------------------------------------------------------------------*/
+
+
 static void
 dao_output_target_seq(rpl_parent_t *parent, uip_ipaddr_t *prefix,
                       uint8_t lifetime, uint8_t seq_no)
@@ -1393,6 +1406,8 @@ dao_output_target_seq(rpl_parent_t *parent, uip_ipaddr_t *prefix,
   }
 }
 /*---------------------------------------------------------------------------*/
+
+
 static void
 dao_ack_input(void)
 {
@@ -1487,6 +1502,8 @@ dao_ack_input(void)
   uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
+
+
 void
 dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence,
                uint8_t status)
@@ -1509,6 +1526,8 @@ dao_ack_output(rpl_instance_t *instance, uip_ipaddr_t *dest, uint8_t sequence,
 #endif /* RPL_WITH_DAO_ACK */
 }
 /*---------------------------------------------------------------------------*/
+
+
 void
 rpl_icmp6_register_handlers()
 {
