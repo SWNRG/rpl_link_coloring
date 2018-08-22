@@ -24,20 +24,23 @@ receiver-node.c is also receiving and sending back-if chosen by the sender. The 
 
 neutral-node.c and neutral-node-RED.c are identical: they DO NOT receive/send messages. The RED one has the node_color=RED, so it will be chosen if MRHOF2 is enabled. 
 
-# Experiment 0: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
-# one white (w), one sender (s). ALL FOUR SEND.
-# Experiment starts AND ENDS with MRHOF, hence,
-# THERE MUST BE NO CHANGE IN ALL RTTs.
+Control Experiment: All nodes in a row, see only one another. So each one
+has one father and one son. RTT is increasing away from the sink.
 
-# Experiment 1: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
-# one white (w), one sender (s). Experiment starts with MRHOF for 20min. 
-# The sender sends s->w->S for 20min. Then change OF=MRHOF2, call global_repair
-# in sink, and local_repair in s. In minute=40, back to MRHOF with same
-# procedures (global/local repairs).
+Experiment 0: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
+one white (w), one sender (s). ALL FOUR SEND.
+Experiment starts AND ENDS with MRHOF, hence,
+THERE MUST BE NO CHANGE IN ALL RTTs.
 
-# Experiment 2: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
-# one white (w), one sender (s). ALL FOUR SEND.
-# Experiment starts with MRHOF for 20min. 
-# The sender sends s->w->S for 20min. Then change OF=MRHOF2, call global_repair
-# in sink, and local_repair in s. In minute=40, back to MRHOF with same
-# procedures (global/local repairs).
+Experiment 1: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
+one white (w), one sender (s). Experiment starts with MRHOF for 20min. 
+The sender sends s->w->S for 20min. Then change OF=MRHOF2, call global_repair
+in sink, and local_repair in s. In minute=40, back to MRHOF with same
+procedures (global/local repairs).
+
+Experiment 2: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
+one white (w), one sender (s). ALL FOUR SEND.
+Experiment starts with MRHOF for 20min. 
+The sender sends s->w->S for 20min. Then change OF=MRHOF2, call global_repair
+in sink, and local_repair in s. In minute=40, back to MRHOF with same
+procedures (global/local repairs).
