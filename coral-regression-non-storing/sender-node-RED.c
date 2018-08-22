@@ -18,12 +18,14 @@
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 static uint32_t sent_time=0; // to me
 static unsigned int message_number;
+rpl_dag_t *cur_dag; // Assing the current dag to trigger local_repair
 
 static struct simple_udp_connection unicast_connection;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_node_process, "Sender node process");
-AUTOSTART_PROCESSES(&sender_node_process);
+PROCESS(sender_button_press_process, "Sender node button press process");
+AUTOSTART_PROCESSES(&sender_node_process, &sender_button_press_process);
 /*---------------------------------------------------------------------------*/
 
 
@@ -101,6 +103,33 @@ receiver(struct simple_udp_connection *c,
 /*---------------------------------------------------------------------------*/
 
 
+PROCESS_THREAD(sender_button_press_process, ev, data)
+{
+
+  PROCESS_BEGIN();
+
+  PROCESS_PAUSE();
+
+  SENSORS_ACTIVATE(button_sensor);
+
+  while(1){
+    PROCESS_YIELD();
+    
+    
+    // test rpl_recalculate_ranks(void)
+    
+    
+   
+		if (ev == sensors_event && data == &button_sensor) {
+			printf("DATA: Node button pressed: Calling local repair...\n");
+			rpl_dag_t *d = rpl_get_any_dag(); //get the current dag
+			rpl_local_repair(d->instance);
+		}
+  }
+  PROCESS_END();
+}
+
+
 PROCESS_THREAD(sender_node_process, ev, data)
 {
   static struct etimer periodic_timer;
@@ -110,14 +139,13 @@ PROCESS_THREAD(sender_node_process, ev, data)
   static int counter=0;
 
 /******************** NODE COLOR LC *****************************/
-  node_color = RPL_DAG_MC_LC_WHITE; //Node color = 1
+  node_color = RPL_DAG_MC_LC_RED; //Node color = 5
   
   
   PROCESS_BEGIN();
 
   set_global_address();
-	 
-  //ready but not used in NEUTRAL NODE
+
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
@@ -127,12 +155,26 @@ PROCESS_THREAD(sender_node_process, ev, data)
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
     etimer_set(&send_timer, SEND_TIME);
+
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
 
-/*********** THIS IS A NEUTRAL NODE: DOES NOT SEND MESSAGES *****/
+/******************* SENDING MESSAGES ************************/
 	 sender(); // send message....
-/****************************************************************/    
+/*************************************************************/
     
+	if(counter == 21){ //One round after global repair
+		printf("DATA: Node Calling local repair...\n");
+		rpl_dag_t *d = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(d->instance);
+	}
+
+	if(counter == 41){ //One round after global repair
+		printf("DATA: Node Calling local repair...\n");
+		rpl_dag_t *d = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(d->instance);
+	}
+	
+/********************** Nothing beyond this point *************/    
     counter++;
   }
 

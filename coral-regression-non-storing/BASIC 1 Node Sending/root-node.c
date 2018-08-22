@@ -184,8 +184,6 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
  * as an argument that we dont destroy the whole graph,
  * just the neighborhood!
  */
- 
-  /*
 	if(counter == 20){ //Change OF in real time
 		printf("DATA: R:%d, OF_C Changing OF=3\n",counter);
 		dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
@@ -201,7 +199,7 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 			printf("DATA: RPL repair succesful\n");
 		}
 	}
-	*/
+	
 	if(RPL_OF_OCP != dag->instance->of->ocp && counter%10 == 0){ //in case OF changes...
 		printf("DATA: R:%d, Current Obj.Func= %u, while original RPL_OF_OCP=%d \n", 
 			counter, dag->instance->of->ocp,RPL_OF_OCP);

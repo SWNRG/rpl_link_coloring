@@ -5,8 +5,9 @@
 #include "net/ip/uip.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-debug.h"
-#include "dev/button-sensor.h"
+
 #include "simple-udp.h"
+
 #include "net/rpl/rpl.h"
 
 #include <stdio.h>
@@ -22,9 +23,8 @@ static struct simple_udp_connection unicast_connection;
 rpl_dag_t *dag; // moved here to be treated as global
 
 /*---------------------------------------------------------------------------*/
-PROCESS(button_server_process, "Button press server process");
-PROCESS(unicast_receiver_process, "Unicast server receiver process");
-AUTOSTART_PROCESSES(&unicast_receiver_process, &button_server_process);
+PROCESS(unicast_receiver_process, "Unicast receiver example process");
+AUTOSTART_PROCESSES(&unicast_receiver_process);
 /*---------------------------------------------------------------------------*/
 
 
@@ -68,7 +68,7 @@ receiver(struct simple_udp_connection *c,
   printf("\n");
   
 /**************** Sending back the received message **********************/
-  printf("DATA: Sending msg back to ");
+  printf("Sending DATA BACK to ");
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
@@ -99,60 +99,11 @@ create_rpl_dag(uip_ipaddr_t *ipaddr)
 /*---------------------------------------------------------------------------*/
 
 
-PROCESS_THREAD(button_server_process, ev, data)
-{
-
-  PROCESS_BEGIN();
-
-  PROCESS_PAUSE();
-
-  SENSORS_ACTIVATE(button_sensor);
-
-  while(1){
-    PROCESS_YIELD();
-   
-    	if (ev == sensors_event && data == &button_sensor) {
-    		PRINTF("DATA Sink button pressed...\n");
-/******* YOU CAN CHANGE THE OF BY PRESSING THE SINK'S BUTTON *******/		   
-			if(dag->instance->of->ocp == RPL_OCP_MRHOF2){
-				PRINTF("DATA: Changing OF to RPL_OCP_MRHOF\n");
-				dag->instance->of->ocp = RPL_OCP_MRHOF; // Original MRHOF
-				printf("RPL: New ocp=%u\n",dag->instance->of->ocp);
-			}
-			else if(dag->instance->of->ocp != RPL_OCP_MRHOF2){
-				PRINTF("DATA: Changing OF to RPL_OCP_MRHOF2\n");
-				dag->instance->of->ocp = RPL_OCP_MRHOF2; // link color MRHOF
-				printf("DATA: New ocp=%u\n",dag->instance->of->ocp);
-			}
-			PRINTF("DATA: Initiaing global repair\n");
-			// Dont forget to reset rpl
-			if( rpl_repair_root(RPL_DEFAULT_INSTANCE) == 1 ){
-				printf("DATA RPL repair succesful\n");
-			}
-			
-/*******************************************************************/
-    }
-  }
-
-  PROCESS_END();
-}
-
-
 PROCESS_THREAD(unicast_receiver_process, ev, data)
 {
   uip_ipaddr_t *ipaddr;
   static struct etimer periodic_timer;
   static int counter=0;
-
-/* As root, the color has to be RED, correct?
- * So, if a child with two RED parents, will choose 
- * less etx, i.e. the sink.
- * If the sink is the only red, it will be chosen, but
- * yet if a child sees the sink, it has to choose it 
- * anyway, right? Even without color, result is the same?
- * There is no case with no RED color when sink is involved...
- */
-	node_color = RPL_DAG_MC_LC_RED; //5    
   
   PROCESS_BEGIN();
 
@@ -174,44 +125,6 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
     etimer_reset(&periodic_timer);
 
 
-/******* Objective Function (OF) **************************/	
-
-/* NOTES ON OBJECTIVE FUNCTION:
- * Don't forger to repair the DAG after changing OF.
- * RPL does not check the OF after repair. 
- * We added the checking OF inside the code...	
- * Dont forget there is also LOCAL REPAIR. Can be used
- * as an argument that we dont destroy the whole graph,
- * just the neighborhood!
- */
- 
-  /*
-	if(counter == 20){ //Change OF in real time
-		printf("DATA: R:%d, OF_C Changing OF=3\n",counter);
-		dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
-		if( rpl_repair_root(RPL_DEFAULT_INSTANCE) == 1 ){
-			printf("DATA: RPL repair succesful\n");
-		}
-	}
-	
-	if(counter == 40){ //Change OF back to oginal
-		printf("DATA: R:%d, OF_C Changing OF=RPL_OCP_MRHOF\n",counter);
-		dag->instance->of->ocp = RPL_OCP_MRHOF; // 1
-		if( rpl_repair_root(RPL_DEFAULT_INSTANCE) ==1 ){
-			printf("DATA: RPL repair succesful\n");
-		}
-	}
-	*/
-	if(RPL_OF_OCP != dag->instance->of->ocp && counter%10 == 0){ //in case OF changes...
-		printf("DATA: R:%d, Current Obj.Func= %u, while original RPL_OF_OCP=%d \n", 
-			counter, dag->instance->of->ocp,RPL_OF_OCP);
-	}else if(counter%10 == 0){ // print the OF every ten rounds....
-		 //printf("RPL: variable value RPL_OF_OCP %d\n", RPL_OF_OCP);
-		 printf("DATA: R:%d, Current Obj.Func: %u\n", 
-			 counter, dag->instance->of->ocp);
-	}
-/********************************************************/	
-
 	
 
 /********************* PRINTOUTS *********************************/	
@@ -220,6 +133,8 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 	}
 
 
+
+	
 	counter++;
   }
   PROCESS_END();

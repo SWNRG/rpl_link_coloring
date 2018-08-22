@@ -10,6 +10,7 @@
 #include "dev/leds.h"
 #include <stdio.h>
 #include <string.h>
+
 #include "dev/button-sensor.h"
 // RPL current instance to be used in local_repair()
 rpl_instance_t *instance;

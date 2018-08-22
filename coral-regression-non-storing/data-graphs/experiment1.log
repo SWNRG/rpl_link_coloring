@@ -1,0 +1,64 @@
+# Experiment 1: Storing mode, 1 sink (S) receiving, 2 red nodes (r), 
+# one white (w), one sender (s). Experiment starts with MRHOF for 20min. 
+# The sender sends s->w->S for 20min. Then change OF=MRHOF2, call global_repair
+# in sink, and local_repair in s. In minute=40, back to MRHOF with same
+# procedures (global/local repairs).
+1	9469
+2	7395
+3	8383
+4	8170
+5	9660
+6	9936
+7	7143
+8	7896
+9	10495
+10	9766
+11	9937
+12	7114
+13	9460
+14	8711
+15	8915
+16	10214
+17	8497
+18	9517
+19	9193
+20	7395
+21	10212
+22	24822
+23	17129
+24	15088
+25	16034
+26	16870
+27	18388
+28	16632
+29	15843
+30	16178
+31	15576
+32	14817
+33	15078
+34	16943
+35	17151
+36	14816
+37	15161
+38	16434
+39	14529
+40	17208
+41	10214
+42	14792
+43	9749
+44	7106
+45	8180
+46	8898
+48	9931
+48	7119
+49	7978
+50	9178
+51	7388
+52	8457
+53	8142
+54	10501
+55	9708
+56	8459
+57	7717
+58	10398
+59	9742

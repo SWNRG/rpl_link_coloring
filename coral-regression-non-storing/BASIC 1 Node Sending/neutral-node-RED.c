@@ -60,9 +60,9 @@ static void sender(){
 	 uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, 1);
 
 	 // Works correctly sending to No 2!!! Remember, the last one is active...
-	 //uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, 2);
+	 uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, 2);
 
-      printf("DATA: Sending unicast msg to ");
+      printf("Sending unicast DATA to ");
       uip_debug_ipaddr_print(&addr);
       printf("\n");
       sprintf(buf, "Message %d", message_number);
@@ -87,11 +87,8 @@ receiver(struct simple_udp_connection *c,
   uint32_t rttime;
   
   rttime = RTIMER_NOW()-sent_time;	
-  printf("DATA: Sender received msg back: '%s'. RTT:%d",data,rttime);
-  printf(", last Msg Num: %d\n", message_number-1);
-  
- /****************** EASY TO EXTRACT DATA **************************/
-  printf("RTT#	%d\n", rttime); // ready for extraction
+  printf("Sender received DATA back: '%s'. RTT:%d\n",data,rttime);
+  printf("Server DATA last Message Number: %d\n", message_number-1);
   
   char gg = *data;
   char *tt="Message";
@@ -109,8 +106,8 @@ PROCESS_THREAD(sender_node_process, ev, data)
 
   static int counter=0;
 
-/******************** NODE COLOR LC *****************************/
-  node_color = RPL_DAG_MC_LC_WHITE; //Node color = 1
+/******************** NODE COLOR LC = RED ************************/
+  node_color = RPL_DAG_MC_LC_RED; //Node color = 5
   
   
   PROCESS_BEGIN();
@@ -130,7 +127,7 @@ PROCESS_THREAD(sender_node_process, ev, data)
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
 
 /*********** THIS IS A NEUTRAL NODE: DOES NOT SEND MESSAGES *****/
-	 sender(); // send message....
+	 //sender(); // send message....
 /****************************************************************/    
     
     counter++;
