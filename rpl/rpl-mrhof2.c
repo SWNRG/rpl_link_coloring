@@ -162,7 +162,10 @@ parent_path_cost(rpl_parent_t *p)
  */   
  
     case RPL_DAG_MC_LC: 
-		base = p->mc.obj.etx;  
+		base = p->mc.obj.etx;
+		// George Can be safely disabled
+		//printf("RPL: case RPL_DAG_MC_LC\n");
+		
 		//base = p->mc.obj.lc;
 		break;
 		
@@ -290,7 +293,7 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
              //printf(" rank: %5u + %5u = %5u", p1->rank, hbh, e2e);
             // p == dag->preferred_parent ? printf(" PREF\n") : printf("\n");
 
-/* TO DO: This code has to many ifs...*/  
+/* TO DO: This code has to many ifs...
   if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED 
   		&& p2->mc.obj.lc == RPL_DAG_MC_LC_RED ){
      printf("RPL: both parents RED. Switch to etx...\n");
@@ -299,20 +302,38 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
   		&& p2->mc.obj.lc != RPL_DAG_MC_LC_RED ){ 
 	 printf("RPL: ");
 	 printShortaddr(rpl_get_parent_ipaddr(p1));
-	 printf(" chosen. Rank: %5u. LC: %d\n",p1->rank,p1->mc.obj.lc);
+	 printf(" RED chosen. Rank: %5u. LC: %d\n",p1->rank,p1->mc.obj.lc);
   	 return p1;
   }else if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED 
   		&& p2->mc.obj.lc == RPL_DAG_MC_LC_RED) {
 	 printf("RPL: ");
 	 printShortaddr(rpl_get_parent_ipaddr(p2));
-	 printf(" chosen. Rank: %5u. LC: %d\n",p2->rank,p1->mc.obj.lc);
+	 printf(" RED chosen. Rank: %5u. LC: %d\n",p2->rank,p1->mc.obj.lc);
   	 return p2;
   }else if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED 
   		&& p2->mc.obj.lc != RPL_DAG_MC_LC_RED ){
-	  printf("RPL: None parent red. Return default etx...\n");
+	  printf("RPL: None parent RED. Return default etx...\n");
 	  // This is the original return...
 	  return p1_cost < p2_cost ?p1 : p2;
-  }	 
+  }
+  */
+  
+// chose between three objects  
+   if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED){
+  		if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED){
+  			return p1_cost < p2_cost ?p1 : p2;
+  		} else {
+  			return p1;	
+  		}
+  	} else {
+  	   if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED){
+  		   return p2;
+  	   }else {
+  		   return p1_cost < p2_cost ?p1 : p2;
+  		}
+  	}
+  
+  	 
 }
 /*---------------------------------------------------------------------------*/
 
@@ -336,13 +357,15 @@ best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
 
 
 
-#if !RPL_WITH_MC
+#if !RPL_WITH_MC // This is IF NOT MC
 static void
 update_metric_container(rpl_instance_t *instance)
 {
   instance->mc.type = RPL_DAG_MC_NONE;
+  
   // George: it should never come here when MC exists...
   printf("RPL: RPL_DAG_MC_NONE\n");
+  
 }
 
 #else /* RPL_WITH_MC */
