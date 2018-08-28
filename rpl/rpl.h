@@ -87,6 +87,8 @@ typedef uint16_t rpl_ocp_t;
 #define RPL_OCP_MRHOF   1
 // George: Defining another objective function to support colors
 #define RPL_OCP_MRHOF2  3
+#define RPL_OCP_MRHOF10 4
+
 
 // George
 /* Colors for LINK COLOR. Add as many as needed...*/

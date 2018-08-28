@@ -68,8 +68,8 @@ void RPL_CALLBACK_PARENT_SWITCH(rpl_parent_t *old, rpl_parent_t *new);
 
 /*---------------------------------------------------------------------------*/
 
-// George: added support for rpl_mrhof2
-extern rpl_of_t rpl_of0, rpl_mrhof, rpl_mrhof2;
+// George: added support for rpl_mrhof2 && mrhof10
+extern rpl_of_t rpl_of0, rpl_mrhof, rpl_mrhof2, rpl_mrhof10;
 static rpl_of_t * const objective_functions[] = RPL_SUPPORTED_OFS;
 
 /*---------------------------------------------------------------------------*/
@@ -109,9 +109,20 @@ rpl_print_neighbor_list(void)
 
     printf("RPL: MOP %u OCP %u rank %u dioint %u, nbr count %u\n",
         default_instance->mop, default_instance->of->ocp, curr_rank, curr_dio_interval, uip_ds6_nbr_num());
+        
+        
     while(p != NULL) {
       const struct link_stats *stats = rpl_get_parent_link_stats(p);
-      printf("RPL: nbr %3u %5u, %5u => %5u -- %2u %c%c (last tx %u min ago)\n",
+      
+      // George
+      printf("DATA: nbr IP: %3u, rank: %5u, parent_metric %5u, rank via p %5u\n",
+          rpl_get_parent_ipaddr(p)->u8[15],
+          p->rank,
+          rpl_get_parent_link_metric(p),
+          rpl_rank_via_parent(p)
+       );
+          
+      PRINTF("RPL: nbr %3u %5u, %5u => %5u -- %2u %c%c (last tx %u min ago)\n",
           rpl_get_parent_ipaddr(p)->u8[15],
           p->rank,
           rpl_get_parent_link_metric(p),
@@ -123,7 +134,7 @@ rpl_print_neighbor_list(void)
       );
       p = nbr_table_next(rpl_parents, p);
     }
-    printf("RPL: end of list\n");
+    //printf("RPL: end of list\n");
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -1367,7 +1378,7 @@ rpl_local_repair(rpl_instance_t *instance)
     PRINTF("RPL: local repair requested for instance NULL\n");
     return;
   }
-  PRINTF("RPL: Starting a local instance repair\n");
+  printf("RPL: DATA Starting a local instance repair\n");
   for(i = 0; i < RPL_MAX_DAG_PER_INSTANCE; i++) {
     if(instance->dag_table[i].used) {
       instance->dag_table[i].rank = INFINITE_RANK;

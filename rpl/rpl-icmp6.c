@@ -1140,18 +1140,6 @@ dao_input(void)
   printShortaddr(&UIP_IP_BUF->srcipaddr);
   printf("\n");
 
-// George: Find out which ones to erase..........
-  // George It does "see" this variable IF IT SET inside proj-conf.h in project folder
-#ifdef RPL_CONF_WITH_NON_STORING
-  printf("RPL: RPL_CONF_WITH_NON_STORING: %u\n", RPL_CONF_WITH_NON_STORING);
-#else
-  printf("RPL: RPL_CONF_WITH_NON_STORING NOT SET\n");
-#endif
-  
-  printf("RPL: RPL_MOP_NON_STORING: %u\n", RPL_MOP_NON_STORING);
-  
-    
-  
   /* Destination Advertisement Object */
   PRINTF("RPL: Received a DAO from ");
   PRINT6ADDR(&UIP_IP_BUF->srcipaddr);
@@ -1168,13 +1156,13 @@ dao_input(void)
   if(RPL_IS_STORING(instance)) {
     
     // George
-    printf("RPL: RPL_IS_STORING\n");
+    //printf("RPL: RPL_IS_STORING\n");
     
     dao_input_storing();
   } else if(RPL_IS_NON_STORING(instance)) {
   
     // George
-    printf("RPL: RPL_IS_NON_STORING\n");
+    //printf("RPL: RPL_IS_NON_STORING\n");
     
     dao_input_nonstoring();
   }

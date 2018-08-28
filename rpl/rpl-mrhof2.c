@@ -46,8 +46,8 @@
  * @{
  */
 
-#include "net/rpl/rpl.h"
-#include "net/rpl/rpl-mrhof2.h"
+#include "net/rpl/rpl.h" // George Should be the same for all OFs
+
 #include "net/rpl/rpl-private.h"
 #include "net/nbr-table.h"
 #include "net/link-stats.h"
@@ -94,7 +94,7 @@ to the threshold of 96 in the non-squared case) */
 static void
 reset(rpl_dag_t *dag)
 {
-  PRINTF("RPL: Reset MRHOF2 was initiated\n");
+  printf("RPL: Reset MRHOF2 was initiated\n");
 }
 /*---------------------------------------------------------------------------*/
 
@@ -163,6 +163,7 @@ parent_path_cost(rpl_parent_t *p)
  
     case RPL_DAG_MC_LC: 
 		base = p->mc.obj.etx;
+
 		// George Can be safely disabled
 		//printf("RPL: case RPL_DAG_MC_LC\n");
 		
@@ -293,42 +294,22 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
              //printf(" rank: %5u + %5u = %5u", p1->rank, hbh, e2e);
             // p == dag->preferred_parent ? printf(" PREF\n") : printf("\n");
 
-/* TO DO: This code has to many ifs...
-  if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED 
-  		&& p2->mc.obj.lc == RPL_DAG_MC_LC_RED ){
-     printf("RPL: both parents RED. Switch to etx...\n");
-  	 return p1_cost < p2_cost ?p1 : p2;
-  }else if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED 
-  		&& p2->mc.obj.lc != RPL_DAG_MC_LC_RED ){ 
-	 printf("RPL: ");
-	 printShortaddr(rpl_get_parent_ipaddr(p1));
-	 printf(" RED chosen. Rank: %5u. LC: %d\n",p1->rank,p1->mc.obj.lc);
-  	 return p1;
-  }else if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED 
-  		&& p2->mc.obj.lc == RPL_DAG_MC_LC_RED) {
-	 printf("RPL: ");
-	 printShortaddr(rpl_get_parent_ipaddr(p2));
-	 printf(" RED chosen. Rank: %5u. LC: %d\n",p2->rank,p1->mc.obj.lc);
-  	 return p2;
-  }else if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED 
-  		&& p2->mc.obj.lc != RPL_DAG_MC_LC_RED ){
-	  printf("RPL: None parent RED. Return default etx...\n");
-	  // This is the original return...
-	  return p1_cost < p2_cost ?p1 : p2;
-  }
-  */
   
 // chose between three objects  
    if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED){
   		if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED){
+  			printf("DATA: P both parents RED\n");
   			return p1_cost < p2_cost ?p1 : p2;
   		} else {
+  			printf("DATA: Parent p1: %u was RED\n",rpl_get_parent_ipaddr(p1)->u8[15]);
   			return p1;	
   		}
   	} else {
   	   if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED){
+  	   	printf("DATA: Parent p2: %u was RED\n",rpl_get_parent_ipaddr(p2)->u8[15]);
   		   return p2;
   	   }else {
+  	   	printf("DATA: P No parent was RED\n");
   		   return p1_cost < p2_cost ?p1 : p2;
   		}
   	}
@@ -408,7 +389,7 @@ update_metric_container(rpl_instance_t *instance)
     case RPL_DAG_MC_NONE:
     	
     	// George: It should NEVER come here with containers enabled
-    	printf("RPL: case RPL_DAG_MC_NONE\n");
+    	printf("RPL: MRHOF2 case RPL_DAG_MC_NONE\n");
     	
       break;
     case RPL_DAG_MC_ETX:
@@ -445,7 +426,7 @@ update_metric_container(rpl_instance_t *instance)
       break;
     default:
       // George: It should never come here if MC is valid
-      printf("RPL: MRHOF, non-supported MC %u\n", instance->mc.type);
+      printf("RPL: MRHOF2, non-supported MC %u\n", instance->mc.type);
       PRINTF("RPL: MRHOF, non-supported MC %u\n", instance->mc.type);
       break;
   }

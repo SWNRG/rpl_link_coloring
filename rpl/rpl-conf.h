@@ -54,7 +54,9 @@
  * Make sure the selected of is inRPL_SUPPORTED_OFS.
  */
  
+ 
 // George : Change OF to MRHOF2 into project-conf.h NOT HERE...
+
 
 #ifdef RPL_CONF_OF_OCP
 #define RPL_OF_OCP RPL_CONF_OF_OCP
@@ -71,8 +73,8 @@
 #define RPL_SUPPORTED_OFS RPL_CONF_SUPPORTED_OFS
 #else /* RPL_CONF_SUPPORTED_OFS */
 
-// George added a third OF
-#define RPL_SUPPORTED_OFS {&rpl_of0, &rpl_mrhof, &rpl_mrhof2}
+// 2018/08 George added a forth OF
+#define RPL_SUPPORTED_OFS {&rpl_of0, &rpl_mrhof, &rpl_mrhof2, &rpl_mrhof10}
 
 //#define RPL_SUPPORTED_OFS {&rpl_mrhof}
 #endif /* RPL_CONF_SUPPORTED_OFS */
