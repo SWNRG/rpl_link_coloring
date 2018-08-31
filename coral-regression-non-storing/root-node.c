@@ -21,6 +21,8 @@
 static struct simple_udp_connection unicast_connection;
 rpl_dag_t *dag; // moved here to be treated as global
 
+static int counter=0;
+  
 /*---------------------------------------------------------------------------*/
 PROCESS(button_server_process, "Button press server process");
 PROCESS(unicast_receiver_process, "Unicast server receiver process");
@@ -54,6 +56,35 @@ set_global_address(void)
 /*---------------------------------------------------------------------------*/
 
 
+static void reset_dag(unsigned int start, unsigned int end){
+ 
+	if(counter == start){ //Change OF in real time
+		printf("RTT# R:%d, OF_C Changing OF=3\n",counter);
+		//dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
+		
+		dag->instance->of->ocp = RPL_OCP_MRHOF10; // 4
+		
+		
+		
+		while( rpl_repair_root(RPL_DEFAULT_INSTANCE) != 1 ){
+			printf("RTT# RPL repair NOT succesful\n");
+			rpl_repair_root(RPL_DEFAULT_INSTANCE);
+		}
+		printf("RTT# In p RPL repair succesful\n");
+	}
+	if(counter == end){ //Change OF back to oginal
+		printf("RTT# R:%d, OF_C Changing OF=RPL_OCP_MRHOF\n",counter);
+		dag->instance->of->ocp = RPL_OCP_MRHOF; // 1
+		while( rpl_repair_root(RPL_DEFAULT_INSTANCE) != 1 ){
+			printf("RTT# RPL repair NOT succesful\n");
+			rpl_repair_root(RPL_DEFAULT_INSTANCE);
+		}
+		printf("RTT# In p RPL repair succesful\n");
+	}
+}
+/*---------------------------------------------------------------------------*/
+
+
 static void
 receiver(struct simple_udp_connection *c,
          const uip_ipaddr_t *sender_addr,
@@ -71,7 +102,13 @@ receiver(struct simple_udp_connection *c,
   printf("DATA: Sending msg back to ");
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
-  simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
+  
+  
+  
+  
+  
+  
+  //simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
 /************************************************************************/ 
 }
 /*---------------------------------------------------------------------------*/
@@ -111,9 +148,12 @@ PROCESS_THREAD(button_server_process, ev, data)
   while(1){
     PROCESS_YIELD();
    
+   
+   	// maybe again here ???? dag = rpl_get_any_dag(); 
     	if (ev == sensors_event && data == &button_sensor) {
-    		PRINTF("DATA Sink button pressed...\n");
+    		PRINTF("DATA Sender Sink button pressed...\n");
 /******* YOU CAN CHANGE THE OF BY PRESSING THE SINK'S BUTTON *******/		   
+			/*
 			if(dag->instance->of->ocp == RPL_OCP_MRHOF2){
 				PRINTF("DATA: Changing OF to RPL_OCP_MRHOF\n");
 				dag->instance->of->ocp = RPL_OCP_MRHOF; // Original MRHOF
@@ -124,10 +164,11 @@ PROCESS_THREAD(button_server_process, ev, data)
 				dag->instance->of->ocp = RPL_OCP_MRHOF2; // link color MRHOF
 				printf("DATA: New ocp=%u\n",dag->instance->of->ocp);
 			}
+			*/
 			PRINTF("DATA: Initiaing global repair\n");
 			// Dont forget to reset rpl
 			if( rpl_repair_root(RPL_DEFAULT_INSTANCE) == 1 ){
-				printf("DATA RPL repair succesful\n");
+				printf("DATA: Sender Sink RPL repair succesful\n");
 			}
 			
 /*******************************************************************/
@@ -142,7 +183,6 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 {
   uip_ipaddr_t *ipaddr;
   static struct etimer periodic_timer;
-  static int counter=0;
 
 /* As root, the color has to be RED, correct?
  * So, if a child with two RED parents, will choose 
@@ -175,7 +215,6 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 
 
 /******* Objective Function (OF) **************************/	
-
 /* NOTES ON OBJECTIVE FUNCTION:
  * Don't forger to repair the DAG after changing OF.
  * RPL does not check the OF after repair. 
@@ -184,41 +223,35 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
  * as an argument that we dont destroy the whole graph,
  * just the neighborhood!
  */
- 
-  /*
-	if(counter == 20){ //Change OF in real time
-		printf("DATA: R:%d, OF_C Changing OF=3\n",counter);
-		dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
-		if( rpl_repair_root(RPL_DEFAULT_INSTANCE) == 1 ){
-			printf("DATA: RPL repair succesful\n");
-		}
-	}
+/********************************************************/	
+
+   //global repair: Once at the 1st param, Once again at the 2nd
+	reset_dag(10,50);
+
 	
-	if(counter == 40){ //Change OF back to oginal
-		printf("DATA: R:%d, OF_C Changing OF=RPL_OCP_MRHOF\n",counter);
-		dag->instance->of->ocp = RPL_OCP_MRHOF; // 1
-		if( rpl_repair_root(RPL_DEFAULT_INSTANCE) ==1 ){
-			printf("DATA: RPL repair succesful\n");
-		}
-	}
-	*/
+
+/********************* PRINTOUTS ************************/	
+	
 	if(RPL_OF_OCP != dag->instance->of->ocp && counter%10 == 0){ //in case OF changes...
-		printf("DATA: R:%d, Current Obj.Func= %u, while original RPL_OF_OCP=%d \n", 
+		printf("RTT# R:%d, In p Current Obj.Func= %u, while original RPL_OF_OCP=%d \n", 
 			counter, dag->instance->of->ocp,RPL_OF_OCP);
 	}else if(counter%10 == 0){ // print the OF every ten rounds....
 		 //printf("RPL: variable value RPL_OF_OCP %d\n", RPL_OF_OCP);
-		 printf("DATA: R:%d, Current Obj.Func: %u\n", 
+		 printf("RTT# R:%d, Current Obj.Func: %u\n", 
 			 counter, dag->instance->of->ocp);
 	}
-/********************************************************/	
-
 	
-
-/********************* PRINTOUTS *********************************/	
 	if(counter%11 == 0){
 		printf("R:%d, Node COLOR: %d\n",counter,node_color);
+		//printf("RPL_MRHOF_SQUARED_ETX: %d\n", RPL_MRHOF_SQUARED_ETX); 
+		// I should set this to zero ???
+		if(RPL_CONF_WITH_NON_STORING !=1){
+			printf("RTT# In p RPL IN STORING MODE\n"); 
+		}
+		else{
+			printf("RTT# In p RPL IN NO STORING MODE\n"); 
+		}
 	}
-
 
 	counter++;
   }

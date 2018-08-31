@@ -19,6 +19,10 @@
 static uint32_t sent_time=0; // to me
 static unsigned int message_number;
 
+static int counter=0;
+  
+rpl_dag_t *cur_dag; // to use in local_repair()
+
 static struct simple_udp_connection unicast_connection;
 
 /*---------------------------------------------------------------------------*/
@@ -73,7 +77,23 @@ static void sender(){
       simple_udp_sendto(&unicast_connection, buf, strlen(buf) + 1, &addr);
 /************************************************************************/
 }
-    
+
+
+static void reset_dag(unsigned int start, unsigned int end){
+	if(counter == start){ //One round after global repair
+		printf("RTT# Node Calling local repair...\n");
+		cur_dag = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(cur_dag->instance);
+	}
+
+	if(counter == end){ //One round after global repair
+		printf("RTT# Node Calling local repair...\n");
+		cur_dag = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(cur_dag->instance);
+	}
+}
+/*---------------------------------------------------------------------------*/  
+
     
 static void
 receiver(struct simple_udp_connection *c,
@@ -87,7 +107,7 @@ receiver(struct simple_udp_connection *c,
   uint32_t rttime;
   
   rttime = RTIMER_NOW()-sent_time;	
-  printf("DATA: Sender received msg back: '%s'. RTT:%d",data,rttime);
+  printf("DATA: In p Sender received msg back: '%s'. RTT:%d",data,rttime);
   printf(", last Msg Num: %d\n", message_number-1);
   
  /****************** EASY TO EXTRACT DATA **************************/
@@ -107,8 +127,6 @@ PROCESS_THREAD(sender_node_process, ev, data)
   static struct etimer send_timer;
 
 
-  static int counter=0;
-
 /******************** NODE COLOR LC = RED ************************/
   node_color = RPL_DAG_MC_LC_RED; //Node color = 5
   
@@ -126,13 +144,20 @@ PROCESS_THREAD(sender_node_process, ev, data)
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
-    etimer_set(&send_timer, SEND_TIME);
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&send_timer));
+    //etimer_set(&send_timer, SEND_TIME);
 
-/*********** THIS IS A NEUTRAL NODE: DOES NOT SEND MESSAGES *****/
-	 sender(); // send message....
-/****************************************************************/    
+
+/***** THIS IS A NEUTRAL NODE: DOES NOT USUALLY SEND MESSAGES ****/
+	 //sender(); // send message....
+/****************************************************************/ 
     
+	
+	//local repair: Once at the 1st param, Once again at the 2nd
+	//reset_dag(21,41);
+	
+	
+	
+/********************** Nothing beyond this point *************/ 
     counter++;
   }
 

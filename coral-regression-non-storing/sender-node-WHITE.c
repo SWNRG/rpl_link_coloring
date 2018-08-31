@@ -18,16 +18,14 @@
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 static uint32_t sent_time=0; // to me
 static unsigned int message_number;
-
-rpl_dag_t *cur_dag; // to use in local_repair()
+rpl_dag_t *cur_dag; // Assing the current dag to trigger local_repair
 
 static struct simple_udp_connection unicast_connection;
 
-static int counter=0;
-
 /*---------------------------------------------------------------------------*/
 PROCESS(sender_node_process, "Sender node process");
-AUTOSTART_PROCESSES(&sender_node_process);
+PROCESS(sender_button_press_process, "Sender node button press process");
+AUTOSTART_PROCESSES(&sender_node_process, &sender_button_press_process);
 /*---------------------------------------------------------------------------*/
 
 
@@ -55,13 +53,37 @@ set_global_address(void)
 /*---------------------------------------------------------------------------*/
 
 
-static void sender(unsigned int nodeID){
+static void reset_dag(unsigned int start, unsigned int end){
+	if(counter == start){ //One round after global repair
+		printf("RTT# Node Calling local repair...\n");
+		cur_dag = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(cur_dag->instance);
+		
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+	}
+
+	if(counter == start){ //One round after global repair
+		printf("RTT# Node Calling local repair...\n");
+		cur_dag = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(cur_dag->instance);
+		
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
+	}
+}
+/*---------------------------------------------------------------------------*/
+
+
+static void sender(){
 
 	char buf[20];
 	uip_ipaddr_t addr;
+    //uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0x0201, 0x001, 0x001, 0x001);
 	
-	 // Works correctly sending to all: Change only nodeID
-	 uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, nodeID);
+	 // Works correctly sending to sink!!!
+	 uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, 1);
+
+	 // Works correctly sending to No 2!!! Remember, the last one is active...
+	 //uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, 2);
 
       printf("DATA: Sending unicast msg to ");
       uip_debug_ipaddr_print(&addr);
@@ -69,29 +91,11 @@ static void sender(unsigned int nodeID){
       sprintf(buf, "Message %d", message_number);
       message_number++;
 	  
-/**************** SENDING UDP UNICAST TO &addr *******************/
+/********************** SENDING UDP UNICAST TO &addr ********************/
 	   sent_time = RTIMER_NOW();
       simple_udp_sendto(&unicast_connection, buf, strlen(buf) + 1, &addr);
-/****************************************************************/
+/************************************************************************/
 }
-/*---------------------------------------------------------------------------*/ 
-
- 
- 
-static void reset_dag(unsigned int start, unsigned int end){
-	if(counter == start){ //One round after global repair
-		printf("RTT# Node Calling local repair...\n");
-		cur_dag = rpl_get_any_dag(); //get the current dag
-		rpl_local_repair(cur_dag->instance);
-	}
-
-	if(counter == end){ //One round after global repair
-		printf("RTT# Node Calling local repair...\n");
-		cur_dag = rpl_get_any_dag(); //get the current dag
-		rpl_local_repair(cur_dag->instance);
-	}
-}
-/*---------------------------------------------------------------------------*/   
     
     
 static void
@@ -110,7 +114,7 @@ receiver(struct simple_udp_connection *c,
   printf(", last Msg Num: %d\n", message_number-1);
   
  /****************** EASY TO EXTRACT DATA **************************/
-  printf("RTT #	%d\n", rttime); // ready for extraction
+  printf("RTT#	%d\n", rttime); // ready for extraction
   
   char gg = *data;
   char *tt="Message";
@@ -118,6 +122,33 @@ receiver(struct simple_udp_connection *c,
   //printf("DATA tt: '%s'\n",tt);
 }
 /*---------------------------------------------------------------------------*/
+
+
+PROCESS_THREAD(sender_button_press_process, ev, data)
+{
+
+  PROCESS_BEGIN();
+
+  PROCESS_PAUSE();
+
+  SENSORS_ACTIVATE(button_sensor);
+
+  while(1){
+    PROCESS_YIELD();
+    
+    
+    // test rpl_recalculate_ranks(void)
+    
+    
+   
+		if (ev == sensors_event && data == &button_sensor) {
+			printf("DATA: Node button pressed: Calling local repair...\n");
+			rpl_dag_t *d = rpl_get_any_dag(); //get the current dag
+			rpl_local_repair(d->instance);
+		}
+  }
+  PROCESS_END();
+}
 
 
 PROCESS_THREAD(sender_node_process, ev, data)
@@ -129,14 +160,13 @@ PROCESS_THREAD(sender_node_process, ev, data)
   static int counter=0;
 
 /******************** NODE COLOR LC *****************************/
-  node_color = RPL_DAG_MC_LC_WHITE; //Node color = 1
+  node_color = RPL_DAG_MC_LC_WHITE; //Node color = 5
   
   
   PROCESS_BEGIN();
 
   set_global_address();
-	 
-  //ready but not used in NEUTRAL NODE
+
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
@@ -148,18 +178,17 @@ PROCESS_THREAD(sender_node_process, ev, data)
     //etimer_set(&send_timer, SEND_TIME);
 
 
+
 /***** THIS IS A NEUTRAL NODE: DOES NOT USUALLY SEND MESSAGES ****/
 	 //sender(1); // send message....
-/****************************************************************/    
+/****************************************************************/ 
     
-    
-    
-   //local repair: Once at the 1st param, Once again at the 2nd
-	reset_dag(12,52);
 	
+	//local repair: Once at the 1st param, Once again at the 2nd
+	//reset_dag(21,41);
+
 	
-	
-/********************** Nothing beyond this point *************/   
+/********************** Nothing beyond this point *************/    
     counter++;
   }
 

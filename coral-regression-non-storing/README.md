@@ -20,7 +20,7 @@ Dont forget this, in order to make reasonable rounds (the same all over the expe
     etimer_reset(&periodic_timer);
 
 
-receiver-node.c is also receiving and sending back-if chosen by the sender. The receiver() process is identical with the sink's. It is wise to call a local_repair() also whenever the OF changes (this should be investigated nevertheless).
+receiver-node.c is also receiving and sending back-if chosen by the sender. The receiver() process is identical with the sink's. It is wise to call a local_repair() also whenever the OF changes (this should be investigated nevertheless).--------------
 
 neutral-node.c and neutral-node-RED.c are identical: they DO NOT receive/send messages. The RED one has the node_color=RED, so it will be chosen if MRHOF2 is enabled. 
 
@@ -44,3 +44,11 @@ Experiment starts with MRHOF for 20min.
 The sender sends s->w->S for 20min. Then change OF=MRHOF2, call global_repair
 in sink, and local_repair in s. In minute=40, back to MRHOF with same
 procedures (global/local repairs).
+
+Experiment 3: Storing Mode, Point to Point: Node 5 is sending, No 2 is receiving
+With MRHOF, the path is 5->4->1->2, hence a big RTT. Switching to MRHOF2, Node 5
+connects to Node 3 as a prefered parent (Node 3 is red), hence the RTT drops significally.
+We noticed that in order for both points (sender and receiver) to establish immediately 
+the new path, we had to trigger a local repair for  both. This way, we not only "force"
+the two nodes to communicate immediately via Node 3, i.e. the new path, but also,
+we don't "disturb" the whole network.
