@@ -16,8 +16,8 @@
 
 
 /* Centrally control the repairs(Global & local) for all nodes */
-#define DAG_RESET_START_CONF 6 //First global repair
-#define DAG_RESET_STOP_CONF 40 //Second global repair
+#define DAG_RESET_START_CONF 5 //First global repair
+#define DAG_RESET_STOP_CONF  50 //Second global repair
 
 
 #ifdef DAG_RESET_START_CONF

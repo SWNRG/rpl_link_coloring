@@ -162,7 +162,7 @@ receiver(struct simple_udp_connection *c,
   	if(RTIMER_CLOCK_LT(time_now,sent_time)){// if arg1<arg2
 		printf("RTIMER restarted...\n");
 		printf("time_now: %d\n",time_now);
-		printf("RTIMER_ARCH_SECOND:%u\n",RTIMER_ARCH_SECOND);
+		//printf("RTIMER_ARCH_SECOND:%u\n",RTIMER_ARCH_SECOND);
 
 // the variable prints as negative ???
 		time_now-=RTIMER_ARCH_SECOND; 

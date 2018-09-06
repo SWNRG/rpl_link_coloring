@@ -99,14 +99,14 @@ static void reset_dag(unsigned int start, unsigned int end){
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -254,7 +254,7 @@ PROCESS_THREAD(sender_node_process, ev, data)
 	 */
    reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);	
 	
-	
+	printf("dag->instance->of->ocp:",dag->instance->of->ocp);
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());
 	if(counter%11 == 0){
 		printf("RTT# R:%d, Node COLOR: %d\n",counter,node_color);

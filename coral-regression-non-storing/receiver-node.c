@@ -108,13 +108,13 @@ receiver(struct simple_udp_connection *c,
          uint16_t datalen)
 {
 
-  printf("DATA: In p '%s' received from ",data);
+  //printf("DATA: In p '%s' received from ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   
 /*********** Sending back the received message *********************/
 
-  printf("DATA: In p sending MSG BACK to ");
+  printf("In p sending '%s' BACK to ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
@@ -132,14 +132,14 @@ static void reset_dag(unsigned int start, unsigned int end){
 		printf("RTT# In p Node Calling local repair...\n");
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks();
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n");
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks();
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 }
 /*------------------------------------------------------------------*/

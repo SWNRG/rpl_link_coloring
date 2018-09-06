@@ -113,13 +113,14 @@ receiver(struct simple_udp_connection *c,
          const uint8_t *data,
          uint16_t datalen)
 {
-  printf("In p '%s' received from ",data);
+  
+  //printf("In p '%s' received from ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   
 /*********** Sending back the received message *********************/
 
-  printf("In p sending MSG BACK to ");
+  printf("In p sending '%s' BACK to ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
