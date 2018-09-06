@@ -93,7 +93,7 @@ set_global_address(void)
 
 static void reset_dag(unsigned int start, unsigned int end){
 
-	printf("RTT# local repair scheduled:%d. %d\n",start,end);
+	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 
 	if(counter == start){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
@@ -116,9 +116,7 @@ static void sender(unsigned int nodeID){
 
 	char buf[20];
 	uip_ipaddr_t addr;
-	
-	
-	
+
 	// Works correctly sending to any node: Change only nodeID
 	uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, nodeID);
 
@@ -130,9 +128,6 @@ static void sender(unsigned int nodeID){
 
 	//new way
    rtime_new_sent = rtimer_arch_now();
-
-
-
 
 /**************** SENDING UDP UNICAST TO &addr *******************/
 	rtimer_init();
@@ -225,17 +220,10 @@ PROCESS_THREAD(sender_node_process, ev, data)
 
   set_global_address();
 
-
-/*local repair: 
- * Once at the 1st param, Once again at the 2nd
- * (+1) so it follows the global repair
- */
-  reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);	
-
-
+  printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START+1,DAG_RESET_STOP+1);
+  
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
-
 
  /* 60*CLOCK_SECOND should print for RM090 every one (1) min
   * etimer_set(&periodic_timer, 60*CLOCK_SECOND);
@@ -256,7 +244,12 @@ PROCESS_THREAD(sender_node_process, ev, data)
 /*************************************************************/
 	
 	// local repairs DO NOT SEEM TO WORK without a global repair...
-	
+
+	/*local repair: 
+	 * Once at the 1st param, Once again at the 2nd
+	 * (+1) so it follows the global repair
+	 */
+   reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);		
 	
 	
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());

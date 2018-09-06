@@ -93,13 +93,13 @@ set_global_address(void)
 
 static void reset_dag(unsigned int start, unsigned int end){
 
-	printf("RTT# local repair scheduled:%d. %d\n",start,end);
+	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 
 	if(counter == start){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
@@ -220,17 +220,10 @@ PROCESS_THREAD(sender_node_process, ev, data)
 
   set_global_address();
 
-
-/*local repair: 
- * Once at the 1st param, Once again at the 2nd
- * (+1) so it follows the global repair
- */
-  reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);	
-
-
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
+  printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START+1,DAG_RESET_STOP+1);	
 
  /* 60*CLOCK_SECOND should print for RM090 every one (1) min
   * etimer_set(&periodic_timer, 60*CLOCK_SECOND);
@@ -254,7 +247,12 @@ PROCESS_THREAD(sender_node_process, ev, data)
 	 * On the contrary, if local repairs all over the new path,
 	 * the nodes immediately change path between sender-receiver
 	 */
-	
+	 
+	 /*local repair: 
+	 * Once at the 1st param, Once again at the 2nd
+	 * (+1) so it follows the global repair
+	 */
+   reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);	
 	
 	
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());

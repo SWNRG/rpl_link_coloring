@@ -79,7 +79,7 @@ set_global_address(void)
 
 static void change_OF(unsigned int start, unsigned int end){
 
-	printf("RTT# Global repair scheduled:%d. %d\n",start,end);
+	//printf("RTT# Global repair scheduled:%d. %d\n",start,end);
  
 	if(counter == start){ //Change OF in real time
 		//printf("RTT# R:%d, In p OF_C Changing OF\n",counter);
@@ -224,6 +224,8 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 
   create_rpl_dag(ipaddr);
 
+  printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START,DAG_RESET_STOP);
+  
 /******************* Creating a UDP UNICAST CONNECTION **********/
   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);

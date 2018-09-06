@@ -126,7 +126,7 @@ receiver(struct simple_udp_connection *c,
 
 static void reset_dag(unsigned int start, unsigned int end){
 
-	printf("RTT# local repair scheduled:%d. %d\n",start,end);
+	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 
 	if(counter == start){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n");
@@ -160,11 +160,8 @@ PROCESS_THREAD(receiver_node_process, ev, data)
 
 	set_global_address();
 
-
-   //local repair: Once at the 1st param, Once again at the 2nd
-	reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);  
-	
-	
+   printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START+1,DAG_RESET_STOP+1);
+  		
    simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
@@ -181,12 +178,13 @@ PROCESS_THREAD(receiver_node_process, ev, data)
 	
 	// local repairs DO NOT SEEM TO WORK without a global repair...  	
 
-    
+   //local repair: Once at the 1st param, Once again at the 2nd
+	reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);      
     
     
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());
 	if(counter%11 == 0){
-		printf("R:%d, Node COLOR: %d\n",counter,node_color);
+		//printf("R:%d, Node COLOR: %d\n",counter,node_color);
 	}	
 	
 

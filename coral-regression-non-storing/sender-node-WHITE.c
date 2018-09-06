@@ -72,6 +72,9 @@ set_global_address(void)
 
 
 static void reset_dag(unsigned int start, unsigned int end){
+	
+	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
+	
 	if(counter == start){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
@@ -94,8 +97,6 @@ static void sender(unsigned int nodeID){
 	char buf[20];
 	uip_ipaddr_t addr;
 	
-	
-	
 	// Works correctly sending to any node: Change only nodeID
 	uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, nodeID);
 
@@ -107,9 +108,6 @@ static void sender(unsigned int nodeID){
 
 	//new way
    rtime_new_sent = rtimer_arch_now();
-
-
-
 
 /**************** SENDING UDP UNICAST TO &addr *******************/
 	rtimer_init();
