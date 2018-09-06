@@ -280,23 +280,25 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
  *
  * If both RED, again the "best" etx wins  
  */
-  if(p1->mc.obj.lc != RPL_DAG_MC_LC_RED && p1->rank > 128){ // >128 exclude sink
-  		printf("In parent NOT RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
+  if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED){ // >128 exclude sink
+  		//printf("In parent NOT RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
   		
-  		p1_cost+=red_node_bonus ;// RED_NODE_BONUS DEPENDING ON HYSTERISIS; 
-  		
+  		p1_cost-=red_node_bonus ;// RED_NODE_BONUS DEPENDING ON HYSTERISIS; 
+  		/*
   		printf(", after: %u", p1_cost);
   		printf(", p1->rank:%d\n", p1->rank);
   		printf("In p Other parent: %u with cost: %5u\n",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
+  		*/
   }
-  if(p2->mc.obj.lc != RPL_DAG_MC_LC_RED && p2->rank > 128 ){ // >128 exclude sink
-  		printf("In parent NOT RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
+  if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED ){ // >128 exclude sink
+  		//printf("In parent NOT RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
   		
-  		p2_cost+=red_node_bonus;//RED_NODE_BONUS; 
-  		
+  		p2_cost-=red_node_bonus;//RED_NODE_BONUS; 
+  		/*
   		printf(", after: %u", p2_cost);
   		printf(", p2->rank:%d\n", p2->rank);
   		printf("In p Other parent: %u with cost: %5u\n",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
+  		*/
   }
   
    
