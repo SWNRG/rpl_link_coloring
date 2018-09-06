@@ -14,8 +14,27 @@
 
 #define UDP_PORT 1234
 
-#define SEND_INTERVAL		(60 * CLOCK_SECOND)
+
+#ifndef DAG_RESET_START_CONF
+// remember: has to do with SEND_INTERVAL_CONF
+#define DAG_RESET_START 10
+#endif 
+
+#ifndef DAG_RESET_STOP_CONF
+// remember: has to do with SEND_INTERVAL_CONF
+#define DAG_RESET_STOP 40
+#endif 
+
+#ifdef SEND_INTERVAL_CONF // In project-conf.h
+#define SEND_INTERVAL		SEND_INTERVAL_CONF
+#else //Only in case you want to localy define it
+#define
+#define SEND_INTERVAL		60*CLOCK_SECONDS
+#endif
+
+// this has to be defined in EVERY station for randomness
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
+
 static uint32_t sent_time=0; // to me
 static unsigned int message_number;
 static int counter=0;
@@ -54,44 +73,28 @@ set_global_address(void)
 }
 /*---------------------------------------------------------------------------*/
   
-  
-static void reset_dag(unsigned int start, unsigned int end){
-	if(counter == start){ //One round after global repair
-		printf("RTT# Node Calling local repair...\n");
-		cur_dag = rpl_get_any_dag(); //get the current dag
-		rpl_local_repair(cur_dag->instance);
-	}
-
-	if(counter == end){ //One round after global repair
-		printf("RTT# Node Calling local repair...\n");
-		cur_dag = rpl_get_any_dag(); //get the current dag
-		rpl_local_repair(cur_dag->instance);
-	}
-}
-/*------------------------------------------------------------------*/
-
-
 
 static void sender(unsigned int nodeID){
 
 	char buf[20];
 	uip_ipaddr_t addr;
 	
-	 // Works correctly sending to all: Change only nodeID
-	 uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, nodeID);
+	// Works correctly sending to any node: Change only nodeID
+	uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, nodeID);
 
-      printf("DATA: Sending unicast msg to ");
-      uip_debug_ipaddr_print(&addr);
-      printf("\n");
-      sprintf(buf, "Message %d", message_number);
-      message_number++;
+	printf("DATA: In p Sending unicast MSG no %d to ",message_number);
+	uip_debug_ipaddr_print(&addr);
+	printf("\n");
+	sprintf(buf, "Message %d", message_number);
+	message_number++;
 	  
 /**************** SENDING UDP UNICAST TO &addr *******************/
-	   sent_time = RTIMER_NOW();
-      simple_udp_sendto(&unicast_connection, buf, strlen(buf) + 1, &addr);
+	rtimer_init();
+	sent_time = RTIMER_NOW();
+	simple_udp_sendto(&unicast_connection, buf, strlen(buf) + 1, &addr);
 /****************************************************************/
 }
-/*---------------------------------------------------------------------------*/ 
+/*----------------------------------------------------------------------*/ 
 
 
 
@@ -104,61 +107,81 @@ receiver(struct simple_udp_connection *c,
          const uint8_t *data,
          uint16_t datalen)
 {
-  printf("DATA: '%s' In p received from ",data);
+
+  printf("DATA: In p '%s' received from ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   
 /*********** Sending back the received message *********************/
 
-
-
-  /*
-  printf("Sending DATA BACK to ");
+  printf("DATA: In p sending MSG BACK to ");
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
-  */
-  
-  
-  
-  
+
 /********************************************************************/
 }
 /*---------------------------------------------------------------------------*/
 
 
+static void reset_dag(unsigned int start, unsigned int end){
+
+	printf("RTT# local repair scheduled:%d. %d\n",start,end);
+
+	if(counter == start){ //One round after global repair
+		printf("RTT# In p Node Calling local repair...\n");
+		cur_dag = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(cur_dag->instance);
+		//rpl_recalculate_ranks();
+	}
+
+	if(counter == end){ //One round after global repair
+		printf("RTT# In p Node Calling local repair...\n");
+		cur_dag = rpl_get_any_dag(); //get the current dag
+		rpl_local_repair(cur_dag->instance);
+		//rpl_recalculate_ranks();
+	}
+}
+/*------------------------------------------------------------------*/
+
+
+
 PROCESS_THREAD(receiver_node_process, ev, data)
 {
-  static struct etimer periodic_timer;
-  static struct etimer send_timer;
+	static struct etimer periodic_timer;
+	static struct etimer send_timer;
 
 
 /******************** NODE COLOR LC *****************************/
-  node_color = RPL_DAG_MC_LC_RED; //Node color = 5
-  
-  PROCESS_BEGIN();
+	node_color = RPL_DAG_MC_LC_RED; //Node color = 5
+/****************************************************************/
 
-  set_global_address();
+	PROCESS_BEGIN();
 
-  simple_udp_register(&unicast_connection, UDP_PORT,
+	set_global_address();
+
+
+   //local repair: Once at the 1st param, Once again at the 2nd
+	reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);  
+	
+	
+   simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
   // 60*CLOCK_SECOND should print for RM090 every one (1)  min
-  etimer_set(&periodic_timer, 60*CLOCK_SECOND);
+  // SEND_INTERVAL shoulb be defined in project-cnof.h
+  etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
-    //etimer_set(&send_timer, SEND_TIME);
-
 
 /*** SENDING MESSAGES: USUALLY RECEIVER DOES NOT SEND MSGS ***/
 	 //sender(1); // send message: NUM IS THE NODE ID
 /*************************************************************/
+	
+	// local repairs DO NOT SEEM TO WORK without a global repair...  	
 
-
-   //local repair: Once at the 1st param, Once again at the 2nd
-	reset_dag(12,52);    	
-
+    
     
     
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());

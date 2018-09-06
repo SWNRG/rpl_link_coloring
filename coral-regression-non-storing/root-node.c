@@ -15,8 +15,29 @@
 #define UDP_PORT 1234
 #define SERVICE_ID 190
 
-#define SEND_INTERVAL		(10 * CLOCK_SECOND)
+
+/******* Centrally defined both in project-conf.h **********/
+#ifndef DAG_RESET_START
+// remember: has to do with SEND_INTERVAL_CONF
+#define DAG_RESET_START 10
+#endif 
+
+#ifndef DAG_RESET_STOP
+// remember: has to do with SEND_INTERVAL_CONF
+#define DAG_RESET_STOP 40
+#endif 
+/************************************************************/
+
+#ifdef SEND_INTERVAL_CONF // In project-conf.h
+#define SEND_INTERVAL		SEND_INTERVAL_CONF
+#else //Only in case you want to localy define it
+#define
+#define SEND_INTERVAL		60*CLOCK_SECONDS
+#endif
+
+// this has to be defined in EVERY station for randomness
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
+
 
 static struct simple_udp_connection unicast_connection;
 rpl_dag_t *dag; // moved here to be treated as global
@@ -56,27 +77,25 @@ set_global_address(void)
 /*---------------------------------------------------------------------------*/
 
 
-static void reset_dag(unsigned int start, unsigned int end){
+static void change_OF(unsigned int start, unsigned int end){
+
+	printf("RTT# Global repair scheduled:%d. %d\n",start,end);
  
 	if(counter == start){ //Change OF in real time
-		printf("RTT# R:%d, OF_C Changing OF=3\n",counter);
+		//printf("RTT# R:%d, In p OF_C Changing OF\n",counter);
 		//dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
-		
 		dag->instance->of->ocp = RPL_OCP_MRHOF10; // 4
-		
-		
-		
 		while( rpl_repair_root(RPL_DEFAULT_INSTANCE) != 1 ){
-			printf("RTT# RPL repair NOT succesful\n");
+			printf("RTT# In p RPL repair NOT succesful\n");
 			rpl_repair_root(RPL_DEFAULT_INSTANCE);
 		}
 		printf("RTT# In p RPL repair succesful\n");
 	}
 	if(counter == end){ //Change OF back to oginal
-		printf("RTT# R:%d, OF_C Changing OF=RPL_OCP_MRHOF\n",counter);
+		printf("RTT# R:%d, In p OF_C Changing OF=RPL_OCP_MRHOF\n",counter);
 		dag->instance->of->ocp = RPL_OCP_MRHOF; // 1
 		while( rpl_repair_root(RPL_DEFAULT_INSTANCE) != 1 ){
-			printf("RTT# RPL repair NOT succesful\n");
+			printf("RTT# In p RPL repair NOT succesful\n");
 			rpl_repair_root(RPL_DEFAULT_INSTANCE);
 		}
 		printf("RTT# In p RPL repair succesful\n");
@@ -94,22 +113,18 @@ receiver(struct simple_udp_connection *c,
          const uint8_t *data,
          uint16_t datalen)
 {
-  printf("DATA: '%s' received from ",data);
+  printf("In p '%s' received from ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   
-/**************** Sending back the received message **********************/
-  printf("DATA: Sending msg back to ");
+/*********** Sending back the received message *********************/
+
+  printf("In p sending MSG BACK to ");
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
-  
-  
-  
-  
-  
-  
-  //simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
-/************************************************************************/ 
+  simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
+
+/********************************************************************/
 }
 /*---------------------------------------------------------------------------*/
 
@@ -192,8 +207,17 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
  * anyway, right? Even without color, result is the same?
  * There is no case with no RED color when sink is involved...
  */
-	node_color = RPL_DAG_MC_LC_RED; //5    
-  
+/******************** NODE COLOR LC **********************/
+  node_color = RPL_DAG_MC_LC_RED; //Node color = 5
+/*********************************************************/   
+
+/* Latest NOTE: The sink DOESNOT consider its color.
+ * obviously it does not have .mc.lc
+ */
+
+
+	
+	  
   PROCESS_BEGIN();
 
   ipaddr = set_global_address();
@@ -205,14 +229,15 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
                       NULL, UDP_PORT, receiver);
 /***************************************************************/
 
-
-
   // 60*CLOCK_SECOND should print for RM090 every one (1)  min
-  etimer_set(&periodic_timer, 60*CLOCK_SECOND);
+  // SEND_INTERVAL is cetrally defined in project-conf.h
+  etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
+    
+/************* Waiting for etimer to expire *****************/    
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
-
+/************************************************************/
 
 /******* Objective Function (OF) **************************/	
 /* NOTES ON OBJECTIVE FUNCTION:
@@ -226,14 +251,15 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 /********************************************************/	
 
    //global repair: Once at the 1st param, Once again at the 2nd
-	reset_dag(10,50);
+	change_OF(DAG_RESET_START,DAG_RESET_STOP);
+
 
 	
 
 /********************* PRINTOUTS ************************/	
 	
 	if(RPL_OF_OCP != dag->instance->of->ocp && counter%10 == 0){ //in case OF changes...
-		printf("RTT# R:%d, In p Current Obj.Func= %u, while original RPL_OF_OCP=%d \n", 
+		printf("RTT# R:%d, In p Current Obj.Func= %u. Original RPL_OF_OCP=%d \n", 
 			counter, dag->instance->of->ocp,RPL_OF_OCP);
 	}else if(counter%10 == 0){ // print the OF every ten rounds....
 		 //printf("RPL: variable value RPL_OF_OCP %d\n", RPL_OF_OCP);
@@ -244,7 +270,7 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 	if(counter%11 == 0){
 		printf("R:%d, Node COLOR: %d\n",counter,node_color);
 		//printf("RPL_MRHOF_SQUARED_ETX: %d\n", RPL_MRHOF_SQUARED_ETX); 
-		// I should set this to zero ???
+
 		if(RPL_CONF_WITH_NON_STORING !=1){
 			printf("RTT# In p RPL IN STORING MODE\n"); 
 		}

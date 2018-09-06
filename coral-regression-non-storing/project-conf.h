@@ -6,6 +6,36 @@
 #define RPL_CONF_DAG_MC RPL_DAG_MC_LC
 #endif
 
+/* Centrally control msg sending time
+ * For RM90 60 * CLOCK_SECONDS is one (1) min
+ * Play with it here to send more messages per min
+ * BUT, remember the counter is affected
+ */
+#define SEND_INTERVAL_CONF  (60 * CLOCK_SECOND) 
+
+
+
+/* Centrally control the repairs(Global & local) for all nodes */
+#define DAG_RESET_START_CONF 3 //First global repair
+#define DAG_RESET_STOP_CONF 40 //Second global repair
+
+
+#ifdef DAG_RESET_START_CONF
+// remember: has to do with SEND_INTERVAL_CONF
+#define DAG_RESET_START DAG_RESET_START_CONF
+#endif 
+
+#ifdef DAG_RESET_STOP_CONF
+// remember: has to do with SEND_INTERVAL_CONF
+#define DAG_RESET_STOP DAG_RESET_STOP_CONF
+#endif 
+
+
+
+//George "poison" the cost if parent is red !!!!!!!!!!!!!!
+#ifndef RED_NODE_BONUS 
+#define RED_NODE_BONUS PARENT_SWITCH_THRESHOLD; //play with it
+#endif
  
 // Server Relpy to enable Receiver to reply
 #ifndef SERVER_REPLY
