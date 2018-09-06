@@ -333,18 +333,11 @@ dio_input(void)
   dio.rank = get16(buffer, i);
   i += 2;
 
+  // George printing without debug on
 
-  /* George printing without debug on
-   * Later on, can be safely disabled
-   */
-  printf("RPL: Received a DIO from ");
-  printShortaddr(&from);
-  printf("\n");
-  
-  
-
-
-
+  //printf("RPL: Received a DIO from ");
+  //printShortaddr(&from);
+  //printf("\n");
 
   PRINTF("RPL: Incoming DIO (id, ver, rank) = (%u,%u,%u)\n",
          (unsigned)dio.instance_id,
@@ -611,14 +604,17 @@ if(rpl_get_mode() !=2){
       buffer[pos++] = 2;
       set16(buffer, pos, instance->mc.obj.lc);
       pos += 2;
-
-	   printf("RPL: Printing node's neighbors:\n");
+		
+		// George
+	   //printf("RPL: Printing node's neighbors:\n");
+	   // Message Printing node's neighbors
 	   rpl_print_neighbor_list();
 	   // there is one already
 	   //printf("RPL: END of Printing node's neighbors:\n"); 
 
 
 	  // It doesn't work... WHy?????????????????????????
+	  
 	  //rpl_find_neighbors(); //works fine, prints all avaliable neighbors....
 	  
 	  
@@ -757,7 +753,7 @@ dao_input_storing(void)
 
   // George: This method is called INSIDE the method dao_input(void)
   // if variable RPL_IS_STORING
-  printf("RPL: DAO-IN dao_input_storing(void) \n");
+  //printf("RPL: DAO-IN dao_input_storing(void) \n");
   
   
   prefixlen = 0;
@@ -860,7 +856,7 @@ dao_input_storing(void)
 #if RPL_WITH_MULTICAST
 
   // George
-  printf("RPL: DAO-IN storing mode && MULTICAST\n");
+  //printf("RPL: DAO-IN storing mode && MULTICAST\n");
   
   
   if(uip_is_addr_mcast_global(&prefix)) {
@@ -1021,7 +1017,7 @@ dao_input_nonstoring(void)
 #if RPL_WITH_NON_STORING
 
   // George
-  printf("RPL: DAO-INPUT: NON-storing mode\n");
+  //printf("RPL: DAO-INPUT: NON-storing mode\n");
   
   uip_ipaddr_t dao_sender_addr;
   uip_ipaddr_t dao_parent_addr;
@@ -1132,13 +1128,13 @@ dao_input(void)
   rpl_instance_t *instance;
   uint8_t instance_id;
 
-  printf("RPL: RPL_WITH_NON_STORING: %u\n", RPL_WITH_NON_STORING);
-  printf("RPL: RPL_MOP_DEFAULT: %u\n", RPL_MOP_DEFAULT);
+  //printf("RPL: RPL_WITH_NON_STORING: %u\n", RPL_WITH_NON_STORING);
+  //printf("RPL: RPL_MOP_DEFAULT: %u\n", RPL_MOP_DEFAULT);
   
   // George Printing DAO received...
-  printf("RPL: Received a DAO from ");
-  printShortaddr(&UIP_IP_BUF->srcipaddr);
-  printf("\n");
+  //printf("RPL: Received a DAO from ");
+  //printShortaddr(&UIP_IP_BUF->srcipaddr);
+  //printf("\n");
 
   /* Destination Advertisement Object */
   PRINTF("RPL: Received a DAO from ");

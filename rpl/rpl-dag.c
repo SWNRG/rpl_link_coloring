@@ -107,20 +107,24 @@ rpl_print_neighbor_list(void)
     rpl_parent_t *p = nbr_table_head(rpl_parents);
     clock_time_t clock_now = clock_time();
 
-    printf("RPL: MOP %u OCP %u rank %u dioint %u, nbr count %u\n",
+    PRINTF("RPL: MOP %u OCP %u rank %u dioint %u, nbr count %u\n",
         default_instance->mop, default_instance->of->ocp, curr_rank, curr_dio_interval, uip_ds6_nbr_num());
-        
+    
+    // George
+    //printf("RPL: curr_rank: %u, total nbrs: %u\n",curr_rank, uip_ds6_nbr_num()); 
         
     while(p != NULL) {
       const struct link_stats *stats = rpl_get_parent_link_stats(p);
       
       // George
-      printf("DATA: nbr IP: %3u, rank: %5u, parent_metric %5u, rank via p %5u\n",
+      /*
+      printf("DATA: Par_IP: %3u, Par_rank: %5u, Par_metric %5u, rank via p %5u\n",
           rpl_get_parent_ipaddr(p)->u8[15],
           p->rank,
           rpl_get_parent_link_metric(p),
           rpl_rank_via_parent(p)
        );
+       */
           
       PRINTF("RPL: nbr %3u %5u, %5u => %5u -- %2u %c%c (last tx %u min ago)\n",
           rpl_get_parent_ipaddr(p)->u8[15],
@@ -138,6 +142,8 @@ rpl_print_neighbor_list(void)
   }
 }
 /*---------------------------------------------------------------------------*/
+
+
 uip_ds6_nbr_t *
 rpl_get_nbr(rpl_parent_t *parent)
 {
@@ -946,7 +952,41 @@ rpl_select_parent(rpl_dag_t *dag)
     rpl_set_preferred_parent(dag, NULL);
   }
 
+
+
+
+/* George DISCUSSION:
+ * If the parent is red and me the node I am not RED,
+ * I have to advertise the CORRECT rank, not the poisonous one , CORRECT?
+ * OR, only the node next to the sender gets poisoned????
+ */
+
+
+int red_node_bonus = 96; // SOS IT HAS TO BE the RED_NODE_BONUS !!!!!!!!! 
+
+
+
+
+
+  // Original line
   dag->rank = rpl_rank_via_parent(dag->preferred_parent);
+  
+  
+  
+	/* George
+	 * If the parent is RED, HE IS LYING ABOUT HIS RANK..
+	 * Hence, lets adjust OUR rank
+	 */
+	/*
+	if (best->mc.obj.lc == RPL_DAG_MC_LC_RED){
+	   printf("In p my UNadjusted rank:%d\n",dag->rank);
+	   dag->rank += red_node_bonus;
+		printf("In p my ADJUSTED rank:%d\n",dag->rank);
+	}
+	*/
+	
+  
+  
   return dag->preferred_parent;
 }
 /*---------------------------------------------------------------------------*/
@@ -1330,7 +1370,7 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
   rpl_parent_t *p;
 
   // Dont forget to mention that RPL Lacks the mechanism of altering OF dynamically
-  printf("RPL: Running the rpl_find_of(dio->ocp) command inside globalr repair\n");
+  //printf("RPL: Running the rpl_find_of(dio->ocp) command inside globalr repair\n");
 	
 	// George Changing OF !!! It works !!!!!!!!!!!!!!!!!!!!	  
   dag->instance->of = rpl_find_of(dio->ocp);
@@ -1356,11 +1396,11 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
   } else {
     dag->rank = rpl_rank_via_parent(p);
     dag->min_rank = dag->rank;
-    PRINTF("RPL: rpl_process_parent_event global repair\n");
+    printf("RPL: In p rpl_process_parent_event global repair\n");
     rpl_process_parent_event(dag->instance, p);
   }
 
-  PRINTF("RPL: Participating in a global repair (version=%u, rank=%hu)\n",
+  printf("RPL: In participating in a global repair (version=%u, rank=%hu)\n",
          dag->version, dag->rank);
 
   RPL_STAT(rpl_stats.global_repairs++);
@@ -1375,10 +1415,10 @@ rpl_local_repair(rpl_instance_t *instance)
   int i;
 
   if(instance == NULL) {
-    PRINTF("RPL: local repair requested for instance NULL\n");
+    printf("RPL: In p local repair requested for instance NULL\n");
     return;
   }
-  printf("RPL: DATA Starting a local instance repair\n");
+  printf("RPL: DATA In p Starting a local instance repair\n");
   for(i = 0; i < RPL_MAX_DAG_PER_INSTANCE; i++) {
     if(instance->dag_table[i].used) {
       instance->dag_table[i].rank = INFINITE_RANK;
@@ -1400,6 +1440,8 @@ rpl_local_repair(rpl_instance_t *instance)
   RPL_STAT(rpl_stats.local_repairs++);
 }
 /*---------------------------------------------------------------------------*/
+
+
 void
 rpl_recalculate_ranks(void)
 {

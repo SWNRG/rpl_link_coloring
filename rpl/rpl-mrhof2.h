@@ -38,7 +38,7 @@
 #ifndef RPL_H
 #define RPL_H
 
-#include "rpl-conf.h"
+#include "rpl-conf-mrhof2.h"
 
 #include "lib/list.h"
 #include "net/ip/uip.h"
@@ -50,7 +50,7 @@ typedef uint16_t rpl_rank_t;
 typedef uint16_t rpl_ocp_t;
 /*---------------------------------------------------------------------------*/
 /* IANA Routing Metric/Constraint Type as defined in RFC6551 */
-#define RPL_DAG_MC_NONE			            0 /* Local identifier for empty MC */
+#define RPL_DAG_MC_NONE			          0 /* Local identifier for empty MC */
 #define RPL_DAG_MC_NSA                  1 /* Node State and Attributes */
 #define RPL_DAG_MC_ENERGY               2 /* Node Energy */
 #define RPL_DAG_MC_HOPCOUNT             3 /* Hop Count */
@@ -74,46 +74,18 @@ typedef uint16_t rpl_ocp_t;
 
 /* The bit index within the flags field of the rpl_metric_object_energy structure. */
 #define RPL_DAG_MC_ENERGY_INCLUDED	    3
-#define RPL_DAG_MC_ENERGY_TYPE		      1
-#define RPL_DAG_MC_ENERGY_ESTIMATION	  0
+#define RPL_DAG_MC_ENERGY_TYPE		    1
+#define RPL_DAG_MC_ENERGY_ESTIMATION	 0
 
 /* IANA Node Type Field as defined in RFC6551 */
-#define RPL_DAG_MC_ENERGY_TYPE_MAINS		   0
+#define RPL_DAG_MC_ENERGY_TYPE_MAINS		 0
 #define RPL_DAG_MC_ENERGY_TYPE_BATTERY		 1
 #define RPL_DAG_MC_ENERGY_TYPE_SCAVENGING	 2
 
 /* IANA Objective Code Point as defined in RFC6550 */
 #define RPL_OCP_OF0     0
 #define RPL_OCP_MRHOF   1
-// George: Defining another objective function to support colors
 #define RPL_OCP_MRHOF2  3
-#define RPL_OCP_MRHOF10 4
-
-
-// George
-/* Colors for LINK COLOR. Add as many as needed...*/
-#define RPL_DAG_MC_LC_WHITE  0
-#define RPL_DAG_MC_LC_BROWN  1
-#define RPL_DAG_MC_LC_GREEN  2
-#define RPL_DAG_MC_LC_YELLOW 3
-#define RPL_DAG_MC_LC_BLACK  4
-#define RPL_DAG_MC_LC_RED    5
-
-#ifndef print6addr
-#define print6addr(addr) printf(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-#endif
-
-
-uint16_t node_color;  //George
-
-
-/* George: color of node is RED by default if not set
- * This way the sink gets to be RED as well
- */
-// try this also...
-#ifndef NODE_COLOR
-#define NODE_COLOR RPL_DAG_MC_LC_RED
-#endif
 
 
 struct rpl_metric_object_energy {
@@ -132,18 +104,12 @@ struct rpl_metric_container {
     struct rpl_metric_object_energy energy;
     uint16_t etx;
     
-	 uint16_t lc; //George: Color support
-        
-        
+    // George
+    uint16_t lc;
+    
   } obj;
 };
 typedef struct rpl_metric_container rpl_metric_container_t;
-
-
-// George print only the last part of the address (e.g. 02)
-#define printShortaddr(addr) printf(" %02x ",((uint8_t *)addr)[15])
-
-
 /*---------------------------------------------------------------------------*/
 struct rpl_instance;
 struct rpl_dag;

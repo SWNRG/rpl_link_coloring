@@ -225,8 +225,14 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
     }
   }
   
-  //George
-  //printf("RPL: p1_cost: %d p2_cost:%d\n", p1_cost,p2_cost);
+/******** George PRINTING POSSIBLE PARENTS ***************/
+	/*
+	printf("RPL: In p p1: %u ",rpl_get_parent_ipaddr(p1)->u8[15]);
+	printf(", rank: %5u, cost %5u\n", p1->rank, &p1_cost);
+	printf("RPL: p2: %u ",rpl_get_parent_ipaddr(p2)->u8[15]);
+	printf(", rank: %5u, cost %5u\n", p2->rank, &p2_cost);
+	*/
+/*********************************************************/ 
   
   return p1_cost < p2_cost ? p1 : p2;
 }
