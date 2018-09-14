@@ -308,8 +308,8 @@
     <width>280</width>
     <z>1</z>
     <height>160</height>
-    <location_x>483</location_x>
-    <location_y>5</location_y>
+    <location_x>323</location_x>
+    <location_y>11</location_y>
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.Visualizer
@@ -334,11 +334,11 @@
       <formatted_time />
       <coloring />
     </plugin_config>
-    <width>694</width>
+    <width>851</width>
     <z>0</z>
-    <height>581</height>
-    <location_x>472</location_x>
-    <location_y>175</location_y>
+    <height>501</height>
+    <location_x>74</location_x>
+    <location_y>263</location_y>
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.TimeLine
