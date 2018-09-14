@@ -1400,11 +1400,11 @@ global_repair(uip_ipaddr_t *from, rpl_dag_t *dag, rpl_dio_t *dio)
   } else {
     dag->rank = rpl_rank_via_parent(p);
     dag->min_rank = dag->rank;
-    printf("RPL: In p rpl_process_parent_event global repair\n");
+    PRINTF("RPL: In p rpl_process_parent_event global repair\n");
     rpl_process_parent_event(dag->instance, p);
   }
 
-  printf("RPL: In participating in a global repair (version=%u, rank=%hu)\n",
+  printf("RPL: I participate in a global repair (version=%u, rank=%hu)\n",
          dag->version, dag->rank);
 
   RPL_STAT(rpl_stats.global_repairs++);
@@ -1422,7 +1422,7 @@ rpl_local_repair(rpl_instance_t *instance)
     printf("RPL: In p local repair requested for instance NULL\n");
     return;
   }
-  printf("RPL: DATA In p Starting a local instance repair\n");
+  PRINTF("RPL: DATA In p Starting a local instance repair\n");
   for(i = 0; i < RPL_MAX_DAG_PER_INSTANCE; i++) {
     if(instance->dag_table[i].used) {
       instance->dag_table[i].rank = INFINITE_RANK;
@@ -1581,7 +1581,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
         RPL_LOLLIPOP_INCREMENT(dag->version);
         rpl_reset_dio_timer(instance);
       } else {
-        printf("RPL: Global repair\n");
+        PRINTF("RPL: Global repair\n");
         if(dio->prefix_info.length != 0) {
           if(dio->prefix_info.flags & UIP_ND6_RA_FLAG_AUTONOMOUS) {
             PRINTF("RPL: Prefix announced in DIO\n");
@@ -1731,17 +1731,9 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
 
 
-
-
-
-
-
-
 /* George ONLY RUN THIS FOR OF != MRHOF2. In MRHOF2 we want
  * the node to connect to the red parent, no matter what
  */
-
-
 if (instance->of->ocp != RPL_OCP_MRHOF2){
 
   if(rpl_process_parent_event(instance, p) == 0) {
@@ -1749,10 +1741,6 @@ if (instance->of->ocp != RPL_OCP_MRHOF2){
     return;
   }
 }
-
-
-
-
 
 
   /* We don't use route control, so we can have only one official parent. */

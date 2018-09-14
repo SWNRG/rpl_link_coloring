@@ -92,7 +92,7 @@ to the threshold of 96 in the non-squared case) */
 static void
 reset(rpl_dag_t *dag)
 {
-  printf("RPL: Reset MRHOF was initiated\n");
+  PRINTF("RPL: Reset MRHOF was initiated\n");
 }
 /*---------------------------------------------------------------------------*/
 #if RPL_WITH_DAO_ACK

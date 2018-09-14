@@ -405,9 +405,7 @@ dio_input(void)
 
         if(dio.mc.type == RPL_DAG_MC_NONE) {
           /* No metric container: do nothing */
-        
-        
-        
+          
         } else if(dio.mc.type == RPL_DAG_MC_ETX) {
           dio.mc.obj.etx = get16(buffer, i + 6);
 
@@ -423,17 +421,13 @@ dio_input(void)
 /************* George: DIO-IN      Support for link color (lc) *************/
         } else if(dio.mc.type == RPL_DAG_MC_LC) { 
 
-          dio.mc.obj.etx = get16(buffer, i + 5); // WORKS OK 09-09
+          dio.mc.obj.etx = get16(buffer, i + 5);
 			 //printf("DIO-IN parent etx %d\n",dio.mc.obj.etx);
 			 
-
-          dio.mc.l_color.lc = buffer[i+7];// buffer[i + 8];
+          dio.mc.l_color.lc = buffer[i+7];
 			 //printf("DIO-IN parent lc %u\n",dio.mc.l_color.lc );
 
-
-
-
-		   // this is the parent's settings  ???
+		   // this is the parent's settings
           PRINTF("RPL: DAG MC: type %u, flags %u, aggr %u, input %u, prec %u, length %u, LC %u, ETX %u\n",
                  (unsigned)dio.mc.type,
                  (unsigned)dio.mc.flags,
@@ -444,13 +438,8 @@ dio_input(void)
 				 	  (unsigned)dio.mc.lc,
 				 	  (unsigned)dio.mc.obj.etx); 
  
-
 /*************************************************** ********/				  
 
-
-
-
-        
         } else if(dio.mc.type == RPL_DAG_MC_ENERGY) {
           dio.mc.obj.energy.flags = buffer[i + 6];
           dio.mc.obj.energy.energy_est = buffer[i + 7];
@@ -630,9 +619,6 @@ if(rpl_get_mode() !=2){
       buffer[pos++] = 2;
       set16(buffer, pos, instance->mc.obj.etx);
       pos += 2;      
-
-
-
 
 /*********** George: DIO-OUT   LINK COLOR (lc) Addition ************/
     } else if(instance->mc.type == RPL_DAG_MC_LC) {  

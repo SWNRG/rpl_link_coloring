@@ -108,7 +108,7 @@ typedef uint16_t rpl_ocp_t;
 
 
 uint8_t node_color ;  //George
-
+static uint8_t aggregator ; //To count the hops to the receiver... NOT USED
 
 struct rpl_metric_object_energy {
   uint8_t flags;
@@ -134,9 +134,6 @@ struct rpl_metric_container {
     struct rpl_metric_object_energy energy;
     uint16_t etx;
   } obj;
-  
-  //uint16_t lc; //George 
-    
 };
 typedef struct rpl_metric_container rpl_metric_container_t;
 
