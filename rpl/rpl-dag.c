@@ -376,6 +376,8 @@ get_dag(uint8_t instance_id, uip_ipaddr_t *dag_id)
   return NULL;
 }
 /*---------------------------------------------------------------------------*/
+
+
 rpl_dag_t *
 rpl_set_root(uint8_t instance_id, uip_ipaddr_t *dag_id)
 {
@@ -467,6 +469,8 @@ rpl_set_root(uint8_t instance_id, uip_ipaddr_t *dag_id)
   return dag;
 }
 /*---------------------------------------------------------------------------*/
+
+
 int
 rpl_repair_root(uint8_t instance_id)
 {
@@ -962,7 +966,7 @@ rpl_select_parent(rpl_dag_t *dag)
  */
 
 
-int red_node_bonus = 96; // SOS IT HAS TO BE the RED_NODE_BONUS !!!!!!!!! 
+//int red_node_bonus = RED_NODE_BONUS; //92;// PARENT_SWITCH_THRESHOLD; // SOS IT HAS TO BE the RED_NODE_BONUS !!!!!!!!! 
 
 
 
@@ -978,14 +982,14 @@ int red_node_bonus = 96; // SOS IT HAS TO BE the RED_NODE_BONUS !!!!!!!!!
 	 * Hence, lets adjust OUR rank
 	 */
 	/*
-	if (best->mc.obj.lc == RPL_DAG_MC_LC_RED){
-	   printf("In p my UNadjusted rank:%d\n",dag->rank);
+	if (best->mc.l_color.lc == RPL_DAG_MC_LC_RED){
+	   printf("MRHOF my RED-BIASED rank:%d\n",dag->rank);
 	   dag->rank += red_node_bonus;
-		printf("In p my ADJUSTED rank:%d\n",dag->rank);
+		printf("MRHOF my new ADJUSTED rank:%d\n",dag->rank);
 	}
 	*/
 	
-  
+  // ?????????????????????????????????????????????????????????
   
   return dag->preferred_parent;
 }
@@ -1560,22 +1564,24 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 #else
   if(dio->mop != RPL_MOP_DEFAULT) {
 #endif
-    PRINTF("RPL: Ignoring a DIO with an unsupported MOP: %d\n", dio->mop);
+    printf("RPL: Ignoring a DIO with an unsupported MOP: %d\n", dio->mop);
     return;
   }
 
   dag = get_dag(dio->instance_id, &dio->dag_id);
+  
   instance = rpl_get_instance(dio->instance_id);
+
 
   if(dag != NULL && instance != NULL) {
     if(lollipop_greater_than(dio->version, dag->version)) {
       if(dag->rank == ROOT_RANK(instance)) {
-        PRINTF("RPL: Root received inconsistent DIO version number (current: %u, received: %u)\n", dag->version, dio->version);
+        printf("RPL: Root received inconsistent DIO version number (current: %u, received: %u)\n", dag->version, dio->version);
         dag->version = dio->version;
         RPL_LOLLIPOP_INCREMENT(dag->version);
         rpl_reset_dio_timer(instance);
       } else {
-        PRINTF("RPL: Global repair\n");
+        printf("RPL: Global repair\n");
         if(dio->prefix_info.length != 0) {
           if(dio->prefix_info.flags & UIP_ND6_RA_FLAG_AUTONOMOUS) {
             PRINTF("RPL: Prefix announced in DIO\n");
@@ -1589,7 +1595,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
     if(lollipop_greater_than(dag->version, dio->version)) {
       /* The DIO sender is on an older version of the DAG. */
-      PRINTF("RPL: old version received => inconsistency detected\n");
+      printf("RPL: old version received => inconsistency detected\n");
       if(dag->joined) {
         rpl_reset_dio_timer(instance);
         return;
@@ -1602,13 +1608,13 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
     if(add_nbr_from_dio(from, dio)) {
       rpl_join_instance(from, dio);
     } else {
-      PRINTF("RPL: Not joining since could not add parent\n");
+      printf("RPL: Not joining since could not add parent\n");
     }
     return;
   }
 
   if(instance->current_dag->rank == ROOT_RANK(instance) && instance->current_dag != dag) {
-    PRINTF("RPL: Root ignored DIO for different DAG\n");
+    printf("RPL: Root ignored DIO for different DAG\n");
     return;
   }
 
@@ -1632,7 +1638,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
 
   if(dio->rank < ROOT_RANK(instance)) {
-    PRINTF("RPL: Ignoring DIO with too low rank: %u\n",
+    printf("RPL: Ignoring DIO with too low rank: %u\n",
            (unsigned)dio->rank);
     return;
   }
@@ -1646,7 +1652,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
   }
 
   if(!add_nbr_from_dio(from, dio)) {
-    PRINTF("RPL: Could not add parent based on DIO\n");
+    printf("RPL: Could not add parent based on DIO\n");
     return;
   }
 
@@ -1659,7 +1665,7 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
 
   /* The DIO comes from a valid DAG, we can refresh its lifetime */
   dag->lifetime = (1UL << (instance->dio_intmin + instance->dio_intdoubl)) * RPL_DAG_LIFETIME / 1000;
-  PRINTF("RPL: Set dag ");
+  PRINTF("RPL: incoming valid DAG. Set dag ");
   PRINT6ADDR(&dag->dag_id);
   PRINTF(" lifetime to %ld\n", dag->lifetime);
 
@@ -1677,9 +1683,9 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
       /* Add the DIO sender as a candidate parent. */
       p = rpl_add_parent(dag, dio, from);
       if(p == NULL) {
-        PRINTF("RPL: Failed to add a new parent (");
+        printf("RPL: Failed to add a new parent (");
         PRINT6ADDR(from);
-        PRINTF(")\n");
+        printf(")\n");
         return;
       }
       PRINTF("RPL: New candidate parent with rank %u: ", (unsigned)p->rank);
@@ -1719,12 +1725,35 @@ rpl_process_dio(uip_ipaddr_t *from, rpl_dio_t *dio)
   /* We have allocated a candidate parent; process the DIO further. */
 
 #if RPL_WITH_MC
+  //printf("RPL: RPL_WITH_MC\n");
   memcpy(&p->mc, &dio->mc, sizeof(p->mc));
 #endif /* RPL_WITH_MC */
+
+
+
+
+
+
+
+
+
+/* George ONLY RUN THIS FOR OF != MRHOF2. In MRHOF2 we want
+ * the node to connect to the red parent, no matter what
+ */
+
+
+if (instance->of->ocp != RPL_OCP_MRHOF2){
+
   if(rpl_process_parent_event(instance, p) == 0) {
-    PRINTF("RPL: The candidate parent is rejected\n");
+    printf("RPL: The candidate parent is rejected\n");
     return;
   }
+}
+
+
+
+
+
 
   /* We don't use route control, so we can have only one official parent. */
   if(dag->joined && p == dag->preferred_parent) {

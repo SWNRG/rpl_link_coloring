@@ -303,6 +303,13 @@ dio_input(void)
   int len;
   uip_ipaddr_t from;
 
+  // George printing without debug on
+
+  //printf("RPL: Received a DIO from ");
+  //printShortaddr(&from);
+  //printf("\n");
+  
+  
   memset(&dio, 0, sizeof(dio));
 
   /* Set default values in case the DIO configuration option is missing. */
@@ -322,7 +329,13 @@ dio_input(void)
   PRINT6ADDR(&from);
   PRINTF("\n");
 
-  buffer_length = uip_len - uip_l3_icmp_hdr_len;
+
+
+//George
+	buffer_length = uip_len - uip_l3_icmp_hdr_len+2;
+
+  //buffer_length = uip_len - uip_l3_icmp_hdr_len;
+
 
   /* Process the DIO base option. */
   i = 0;
@@ -332,12 +345,6 @@ dio_input(void)
   dio.version = buffer[i++];
   dio.rank = get16(buffer, i);
   i += 2;
-
-  // George printing without debug on
-
-  //printf("RPL: Received a DIO from ");
-  //printShortaddr(&from);
-  //printf("\n");
 
   PRINTF("RPL: Incoming DIO (id, ver, rank) = (%u,%u,%u)\n",
          (unsigned)dio.instance_id,
@@ -358,6 +365,11 @@ dio_input(void)
   PRINTF("RPL: Incoming DIO (dag_id, pref) = (");
   PRINT6ADDR(&dio.dag_id);
   PRINTF(", %u)\n", dio.preference);
+
+
+
+//printf("DIO-IN buffer_length: %d\n",buffer_length);
+// buffer_length reports 82
 
   /* Check if there are any DIO suboptions. */
   for(; i < buffer_length; i += len) {
@@ -393,6 +405,9 @@ dio_input(void)
 
         if(dio.mc.type == RPL_DAG_MC_NONE) {
           /* No metric container: do nothing */
+        
+        
+        
         } else if(dio.mc.type == RPL_DAG_MC_ETX) {
           dio.mc.obj.etx = get16(buffer, i + 6);
 
@@ -404,21 +419,37 @@ dio_input(void)
                  (unsigned)dio.mc.length,
                  (unsigned)dio.mc.obj.etx);
 
-/************* George Support for link color (lc) *************/
-        } else if(dio.mc.type == RPL_DAG_MC_LC) { 
-          dio.mc.obj.lc = get16(buffer, i + 6);
 
-		   // This is the parent's settings 
-          PRINTF("RPL: DAG MC: type %u, flags %u, aggr %u, prec %u, length %u, LC %u\n",
+/************* George: DIO-IN      Support for link color (lc) *************/
+        } else if(dio.mc.type == RPL_DAG_MC_LC) { 
+
+          dio.mc.obj.etx = get16(buffer, i + 5); // WORKS OK 09-09
+			 //printf("DIO-IN parent etx %d\n",dio.mc.obj.etx);
+			 
+
+          dio.mc.l_color.lc = buffer[i+7];// buffer[i + 8];
+			 //printf("DIO-IN parent lc %u\n",dio.mc.l_color.lc );
+
+
+
+
+		   // this is the parent's settings  ???
+          PRINTF("RPL: DAG MC: type %u, flags %u, aggr %u, input %u, prec %u, length %u, LC %u, ETX %u\n",
                  (unsigned)dio.mc.type,
                  (unsigned)dio.mc.flags,
                  (unsigned)dio.mc.aggr,
                  (unsigned)dio_input,
 				 	  (unsigned)dio.mc.prec,
                  (unsigned)dio.mc.length,
-				 	  (unsigned)dio.mc.obj.lc);  
+				 	  (unsigned)dio.mc.lc,
+				 	  (unsigned)dio.mc.obj.etx); 
+ 
 
 /*************************************************** ********/				  
+
+
+
+
         
         } else if(dio.mc.type == RPL_DAG_MC_ENERGY) {
           dio.mc.obj.energy.flags = buffer[i + 6];
@@ -507,6 +538,8 @@ discard:
 /*---------------------------------------------------------------------------*/
 
 
+
+
 /* ================== FORMING DIO ==========================================*/
 void
 dio_output(rpl_instance_t *instance, uip_ipaddr_t *uc_addr)
@@ -541,6 +574,7 @@ if(RPL_LEAF_ONLY){
   buffer[pos++] = dag->version;
   is_root = (dag->rank == ROOT_RANK(instance));
 
+// George
 if (rpl_get_mode() ==2){ //RPL_LEAF_ONLY
 //#if RPL_LEAF_ONLY
   PRINTF("RPL: LEAF ONLY DIO rank set to INFINITE_RANK\n");
@@ -578,6 +612,7 @@ if (rpl_get_mode() ==2){ //RPL_LEAF_ONLY
   memcpy(buffer + pos, &dag->dag_id, sizeof(dag->dag_id));
   pos += 16;
 
+// George
 if(rpl_get_mode() !=2){	
 //#if !RPL_LEAF_ONLY
 
@@ -590,35 +625,36 @@ if(rpl_get_mode() !=2){
     buffer[pos++] = instance->mc.flags >> 1;
     buffer[pos] = (instance->mc.flags & 1) << 7;
     buffer[pos++] |= (instance->mc.aggr << 4) | instance->mc.prec;
+
     if(instance->mc.type == RPL_DAG_MC_ETX) {
       buffer[pos++] = 2;
       set16(buffer, pos, instance->mc.obj.etx);
       pos += 2;      
-      
-/*********** George: LINK COLOR (lc) Addition ************/
+
+
+
+
+/*********** George: DIO-OUT   LINK COLOR (lc) Addition ************/
     } else if(instance->mc.type == RPL_DAG_MC_LC) {  
-		
-	  // Can safely be disabled...	
-	  //printf("RPL: Inside dio_ouput, color case\n");
-	  
-      buffer[pos++] = 2;
-      set16(buffer, pos, instance->mc.obj.lc);
-      pos += 2;
-		
-		// George
-	   //printf("RPL: Printing node's neighbors:\n");
-	   // Message Printing node's neighbors
-	   rpl_print_neighbor_list();
-	   // there is one already
-	   //printf("RPL: END of Printing node's neighbors:\n"); 
+			//position is 29 here
+			
+			// USED FOR THE LC BELOW.....
+		  //buffer[pos++] = 2; // WTF IS THIS ?????????????????????????????
+		  
+        set16(buffer, pos, instance->mc.obj.etx); //still lc uses etx for base!!!
+        //printf("DIO-OUT my etx: %d\n",instance->mc.obj.etx);	
+        pos += 2; // Need to advance the position.....
+
+		  buffer[pos++] = instance->mc.l_color.lc;
+		  //printf("DIO-OUT COLOR was set: %d\n",instance->mc.l_color.lc);	
 
 
-	  // It doesn't work... WHy?????????????????????????
-	  
+	  // It doesn't work... WHy?????????????????????????	  
 	  //rpl_find_neighbors(); //works fine, prints all avaliable neighbors....
 	  
 	  
 /*********************************************************/
+
 
 
 
@@ -629,14 +665,28 @@ if(rpl_get_mode() !=2){
       buffer[pos++] = instance->mc.obj.energy.flags;
       buffer[pos++] = instance->mc.obj.energy.energy_est;
     } else {
-      PRINTF("RPL: Unable to send DIO because of unhandled DAG MC type %u\n",
+      printf("RPL: Unable to send DIO because of unhandled DAG MC type %u\n",
              (unsigned)instance->mc.type);
       return;
     }
   }
-}
+ //George 
 //#endif /* !RPL_LEAF_ONLY */
-
+}
+  
+  
+  
+  
+  
+  
+  //printf("DIO-OUT pos: %u, buffer[pos] = RPL_OPTION_DAG_CONF: %u\n",pos, buffer[pos]);
+  
+  
+  
+  
+  
+  
+  
   /* Always add a DAG configuration option. */
   buffer[pos++] = RPL_OPTION_DAG_CONF;
   buffer[pos++] = 14;
@@ -678,6 +728,7 @@ if(rpl_get_mode() !=2){
            dag->prefix_info.length);
   }
 
+// George
 if(rpl_get_mode() == 2){
 //#if RPL_LEAF_ONLY
 
@@ -692,6 +743,7 @@ if(rpl_get_mode() == 2){
   PRINTF("\n");
   uip_icmp6_send(uc_addr, ICMP6_RPL, RPL_CODE_DIO, pos);
 
+//George
 }else{
 //#else /* RPL_LEAF_ONLY */
 
@@ -763,7 +815,9 @@ dao_input_storing(void)
   uip_ipaddr_copy(&dao_sender_addr, &UIP_IP_BUF->srcipaddr);
 
   buffer = UIP_ICMP_PAYLOAD;
-  buffer_length = uip_len - uip_l3_icmp_hdr_len;
+  
+  buffer_length = uip_len - uip_l3_icmp_hdr_len+2;
+  //buffer_length = uip_len - uip_l3_icmp_hdr_len;
 
   pos = 0;
   instance_id = buffer[pos++];
@@ -1042,7 +1096,13 @@ dao_input_nonstoring(void)
   memset(&dao_parent_addr, 0, 16);
 
   buffer = UIP_ICMP_PAYLOAD;
-  buffer_length = uip_len - uip_l3_icmp_hdr_len;
+ 
+ 
+  buffer_length = uip_len - uip_l3_icmp_hdr_len+2;
+
+
+  //buffer_length = uip_len - uip_l3_icmp_hdr_len;
+
 
   pos = 0;
   instance_id = buffer[pos++];
@@ -1167,6 +1227,8 @@ discard:
   uip_clear_buf();
 }
 /*---------------------------------------------------------------------------*/
+
+
 
 #if RPL_WITH_DAO_ACK
 static void

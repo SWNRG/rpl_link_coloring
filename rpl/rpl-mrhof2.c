@@ -153,19 +153,19 @@ parent_path_cost(rpl_parent_t *p)
       base = p->mc.obj.etx;
       break;
 
-/* George : Altough coloring, the base is still etx. 
- * if color==X do something else..   
- * if you do base = p->mc.obj.lc; then the base will 
- * be calculated on the color number. This way you 
- * can poison certain roots
- */   
- 
+	/* George : Altough coloring, the base is still etx. 
+	 * if color==X do something else..   
+	 * if you do base = p->mc.obj.lc; then the base will 
+	 * be calculated on the color number. This way you 
+	 * can poison certain roots
+	 */   
     case RPL_DAG_MC_LC: 
-		base = p->mc.obj.etx;
+	
+		//printf("parent's lc: %d\n",p->mc.obj.lc);
+		//printf("parent's etx: %d\n",p->mc.obj.etx);
 
-		// George Can be safely disabled
-		//printf("RPL: case RPL_DAG_MC_LC\n");
-		
+	    base = p->mc.obj.etx;
+		//Can make the red nodes more attractive with this
 		//base = p->mc.obj.lc;
 		break;
 		
@@ -243,14 +243,11 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
   uint16_t p2_cost;
   int p1_is_acceptable;
   int p2_is_acceptable;
-  
-  
+
+  uint8_t my_color; //George use node's own color
   
   // George prints all neighbors !!!
   //rpl_print_neighbor_list();
-
-
-
 
   p1_is_acceptable = p1 != NULL && parent_is_acceptable(p1);
   p2_is_acceptable = p2 != NULL && parent_is_acceptable(p2);
@@ -265,25 +262,25 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
   dag = p1->dag; /* Both parents are in the same DAG. */
   p1_cost = parent_path_cost(p1);
   p2_cost = parent_path_cost(p2);
-  
-  /* Maintain stability of the preferred parent in case of similar ranks. */
-  if(p1 == dag->preferred_parent || p2 == dag->preferred_parent) {
-    if(p1_cost < p2_cost + PARENT_SWITCH_THRESHOLD &&
-       p1_cost > p2_cost - PARENT_SWITCH_THRESHOLD) {
-      return dag->preferred_parent;
-    }
-  }
+
+	// Only when the parents are both or none RED
+	if( (p1->mc.l_color.lc == RPL_DAG_MC_LC_RED && p2->mc.l_color.lc == RPL_DAG_MC_LC_RED) ||
+		 (p1->mc.l_color.lc != RPL_DAG_MC_LC_RED && p2->mc.l_color.lc != RPL_DAG_MC_LC_RED)
+	  )
+	{
+	  /* Maintain stability of the preferred parent in case of similar ranks. */
+	  if(p1 == dag->preferred_parent || p2 == dag->preferred_parent) {
+		 if(p1_cost < p2_cost + PARENT_SWITCH_THRESHOLD &&
+		    p1_cost > p2_cost - PARENT_SWITCH_THRESHOLD) {
+		   return dag->preferred_parent;
+		 }
+	  }
+	}
 
 
-  /*printf("RPL: p1: ");
-  printShortaddr(rpl_get_parent_ipaddr(p1));
-  printf("\n");
-  printf("RPL: p1 rank: %5u, cost %5u\n", p1->rank, &p1_cost);
-  printf("RPL: p2: ");
-  printShortaddr(rpl_get_parent_ipaddr(p2));
-  printf("\n");
-  printf("RPL: p2 rank: %5u, cost %5u\n", p2->rank, &p2_cost);
-  */
+// node's OWN color
+  //printf("MRHOF2: My color: %u\n",dag->instance->mc.l_color.lc);
+  my_color = dag->instance->mc.l_color.lc ;
   
   //rpl_rank_t e2e = RPL_OF.calculate_rank(p1, 0);
              //rpl_rank_t hbh = e2e - p1->rank;
@@ -293,43 +290,98 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
              //printf(" rank: %5u + %5u = %5u", p1->rank, hbh, e2e);
             // p == dag->preferred_parent ? printf(" PREF\n") : printf("\n");
 
+
+
+	if(p1->rank == ROOT_RANK(dag->instance)){
+		//printf("MRHOF2: P1 chosen as Sink: %u\n",rpl_get_parent_ipaddr(p1)->u8[15]);
+		return p1;
+	}
+	if(p2->rank == ROOT_RANK(dag->instance)){
+		//printf("MRHOF2: P2 chosen as Sink: %u\n",rpl_get_parent_ipaddr(p2)->u8[15]);
+		return p2;
+	}
+
+
+
+	// If I AM RED, and any parent is the receiver, return it
+	if(p1->mc.l_color.lc == RPL_DAG_MC_LC_ORANGE){
+		if(my_color == RPL_DAG_MC_LC_RED){
+			//printf("MRHOF2: I am RED, found ORANGE father: %u\n",rpl_get_parent_ipaddr(p1)->u8[15]);
+			return p1;
+		}else{
+			//printf("MRHOF2: I am not RED, found ORANGE (Don't care..), I choose etx\n");
+			return p1_cost < p2_cost ? p1 : p2; //original return			
+		}
+	}
+	if(p2->mc.l_color.lc == RPL_DAG_MC_LC_ORANGE){
+		if(my_color == RPL_DAG_MC_LC_RED){
+			//printf("MRHOF2: I am RED, found ORANGE father: %u\n",rpl_get_parent_ipaddr(p1)->u8[15]);
+			return p2;
+		}else{
+			//printf("MRHOF2: I am not RED, found ORANGE (Don't care..), I choose etx\n");
+			return p1_cost < p2_cost ? p1 : p2; //original return			
+		}
+	}
+
+
+   switch(my_color) {
   
-// chose between three objects  
-   if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED){
-  		if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED){
-  			printf("DATA: P both parents RED\n");
-  	   	if(p1_cost < p2_cost){
-  	   		printf("DATA: P favorite parent1: %u\n",rpl_get_parent_ipaddr(p1)->u8[15]);
-  	   		return p1;
-  	   	}
-  	   	else{ //its the other one...
-  	   		printf("DATA: P favorite parent2: %u\n",rpl_get_parent_ipaddr(p2)->u8[15]);
-  	   		return p2;
-  	   	}
-  		} else {
-  			printf("DATA: Parent p1: %u was RED\n",rpl_get_parent_ipaddr(p1)->u8[15]);
-  			return p1;	
-  		}
-  	} else {
-  	   if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED){
-  	   	printf("DATA: Parent p2: %u was RED\n",rpl_get_parent_ipaddr(p2)->u8[15]);
-  		   return p2;
-  	   }else {
-  	   	printf("DATA: P No parent was RED\n");
-  	   	if(p1_cost < p2_cost){
-  	   		printf("DATA: P favorite parent1: %u\n",rpl_get_parent_ipaddr(p1)->u8[15]);
-  	   		return p1;
-  	   	}
-  	   	else{ //its the other one...
-  	   		printf("DATA: P favorite parent2: %u\n",rpl_get_parent_ipaddr(p2)->u8[15]);
-  	   		return p2;
-  	   	}
-  	   	//original
-  		   //return p1_cost < p2_cost ?p1 : p2;
-  		}
-  	}
-  
-  	 
+		case RPL_DAG_MC_LC_PURPLE: //sender
+			if(p1->mc.l_color.lc == RPL_DAG_MC_LC_RED){ //p1 IS red
+				 //printf("MRHOF2: I am sender. P1: %u was RED\n",rpl_get_parent_ipaddr(p1)->u8[15]);
+				 return p1;	
+			}else if(p2->mc.l_color.lc == RPL_DAG_MC_LC_RED){ //p2 IS red
+				 //printf("MRHOF2: I am sender. P2: %u was RED\n",rpl_get_parent_ipaddr(p2)->u8[15]);
+				 return p2;	
+			}else{
+				//printf("MHROF2: Sender didn't find RED father. Chose etx\n");
+				return p1_cost < p2_cost ? p1 : p2; //original return	
+			}		
+			break;
+			
+		case RPL_DAG_MC_LC_ORANGE: //receiver
+			/* You are last, don't bother with colors, normal choice */
+			//printf("MHROF2: I am ORANGE (last one). Chose etx\n");
+			return p1_cost < p2_cost ? p1 : p2; //original return	
+			break;
+			
+		case RPL_DAG_MC_LC_RED: // I am RED, so I have at least ONE RED parent
+			if(p1->mc.l_color.lc == RPL_DAG_MC_LC_RED){
+		  		if(p2->mc.l_color.lc == RPL_DAG_MC_LC_RED){
+		  			//printf("MRHOF2: both parents RED\n");
+		  	   	if(p1_cost < p2_cost){ // p1_cost smaller
+		  	   		 //printf("MRHOF2: P1 RED chosen: %u\n",rpl_get_parent_ipaddr(p1)->u8[15]);
+		  	   		 return p1;
+		  	   	}else{                 // p2_cost smaller
+		  	   		 //printf("MRHOF2: P2 RED chosen: %u\n",rpl_get_parent_ipaddr(p2)->u8[15]);
+		  	   		 return p2;
+		  	   	}
+		  		}else{ //p2 is NOT red, but p1 is red
+		  			 //printf("MRHOF2: Parent p1: %u was RED\n",rpl_get_parent_ipaddr(p1)->u8[15]);
+		  			 return p1;	
+		  		}
+		  	}else{ //p1 is NOT red
+		  	   if(p2->mc.l_color.lc == RPL_DAG_MC_LC_RED){ //p2 IS red
+		  	   	 //printf("MRHOF2: Parent p2: %u was RED\n",rpl_get_parent_ipaddr(p2)->u8[15]);
+		  		    return p2;
+		  		}
+		  		else{ //no parent is RED
+		  			//printf("MHROF2: A RED node didn't find RED father. Chose etx\n");
+		  			return p1_cost < p2_cost ? p1 : p2; //original return	
+		  		}
+			}
+			break;
+			
+		case RPL_DAG_MC_LC_WHITE: // I am a normal node, choose etx	
+			//printf("MHROF2: I am WHITE (Don't care about anything). Chose etx\n");		 
+	 		return p1_cost < p2_cost ? p1 : p2; //original return	
+	 		break;
+	 	default:
+	 		printf("MRHOF2: Unsupported color found. Switch to etx...\n");
+	 		return p1_cost < p2_cost ? p1 : p2; //original return	return NULL;
+ 
+  }// end switch my_color
+	
 }
 /*---------------------------------------------------------------------------*/
 
@@ -388,15 +440,21 @@ update_metric_container(rpl_instance_t *instance)
     instance->mc.type = RPL_DAG_MC;
 
     //George: Testing only
-    printf("RPL: instance->mc.type =%d\n",RPL_DAG_MC); 
+    //printf("RPL: instance->mc.type =%d\n",RPL_DAG_MC); 
 
     instance->mc.flags = 0;
     instance->mc.aggr = RPL_DAG_MC_AGGR_ADDITIVE;
     instance->mc.prec = 0;
     path_cost = dag->rank;
+    
+    //George
+    instance->mc.l_color.lc = node_color; //sink needs to be red?
 
   } else {
     path_cost = parent_path_cost(dag->preferred_parent);
+    
+    //George
+    instance->mc.l_color.lc = node_color;
   }
 
   /* Handle the different MC types */
@@ -409,7 +467,8 @@ update_metric_container(rpl_instance_t *instance)
       break;
     case RPL_DAG_MC_ETX:
       instance->mc.length = sizeof(instance->mc.obj.etx);
-      instance->mc.obj.etx = path_cost;
+      instance->mc.obj.etx = path_cost;     
+      printf("It should NOT come here with LC enabled...\n");
       break;
       
 
@@ -420,14 +479,10 @@ update_metric_container(rpl_instance_t *instance)
  * it happens in best_parent()
  */ 
     case RPL_DAG_MC_LC: 
-      instance->mc.length = sizeof(instance->mc.obj.lc);
-      instance->mc.obj.lc = node_color;    
       
-// we have to carry the alternative parents here???
+      instance->mc.obj.etx = path_cost;       
 
-      //printf("RPL: inside case, node_color=%d\n",node_color);
       break;
-
     case RPL_DAG_MC_ENERGY:
       instance->mc.length = sizeof(instance->mc.obj.energy);
       if(dag->rank == ROOT_RANK(instance)) {
@@ -441,8 +496,8 @@ update_metric_container(rpl_instance_t *instance)
       break;
     default:
       // George: It should never come here if MC is valid
-      printf("RPL: MRHOF2, non-supported MC %u\n", instance->mc.type);
-      PRINTF("RPL: MRHOF, non-supported MC %u\n", instance->mc.type);
+      printf("MRHOF2, non-supported MC %u\n", instance->mc.type);
+      PRINTF("RPL: MRHOF2, non-supported MC %u\n", instance->mc.type);
       break;
   }
 }

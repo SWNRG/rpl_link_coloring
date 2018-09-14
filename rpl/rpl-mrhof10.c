@@ -46,8 +46,7 @@
  * @{
  */
 
-#include "net/rpl/rpl.h" // George Should be the same for all OFs
-
+#include "net/rpl/rpl.h"
 #include "net/rpl/rpl-private.h"
 #include "net/nbr-table.h"
 #include "net/link-stats.h"
@@ -82,13 +81,15 @@
 #define PARENT_SWITCH_THRESHOLD 96 /* Eq ETX of 0.75 */
 #else /* !RPL_MRHOF_SQUARED_ETX */
 #define MAX_LINK_METRIC     2048 /* Eq ETX of 4 */
-#define PARENT_SWITCH_THRESHOLD 160 /* Eq ETX of 1.25 (results in a churn comparable to the threshold of 96 in the non-squared case) */
+#define PARENT_SWITCH_THRESHOLD 160 /* Eq ETX of 1.25 (results in a churn comparable
+to the threshold of 96 in the non-squared case) */
 #endif /* !RPL_MRHOF_SQUARED_ETX */
 
 /* Reject parents that have a higher path cost than the following. */
 #define MAX_PATH_COST      32768   /* Eq path ETX of 256 */
 
 /*---------------------------------------------------------------------------*/
+
 
 static void
 reset(rpl_dag_t *dag)
@@ -106,7 +107,7 @@ dao_ack_callback(rpl_parent_t *p, int status)
     return;
   }
   /* here we need to handle failed DAO's and other stuff */
-  PRINTF("RPL: MRHOF - DAO ACK received with status: %d\n", status);
+  PRINTF("RPL: MRHOF10 - DAO ACK received with status: %d\n", status);
   if(status >= RPL_DAO_ACK_UNABLE_TO_ACCEPT) {
     /* punish the ETX as if this was 10 packets lost */
     link_stats_packet_sent(rpl_get_parent_lladdr(p), MAC_TX_OK, 10);
@@ -116,6 +117,7 @@ dao_ack_callback(rpl_parent_t *p, int status)
   }
 }
 #endif /* RPL_WITH_DAO_ACK */
+
 /*---------------------------------------------------------------------------*/
 
 
@@ -136,7 +138,6 @@ parent_link_metric(rpl_parent_t *p)
 /*---------------------------------------------------------------------------*/
 
 
-
 static uint16_t
 parent_path_cost(rpl_parent_t *p)
 {
@@ -152,23 +153,21 @@ parent_path_cost(rpl_parent_t *p)
     case RPL_DAG_MC_ETX:
       base = p->mc.obj.etx;
       break;
-
+      
 /* George : Altough coloring, the base is still etx. 
  * if color==X do something else..   
  * if you do base = p->mc.obj.lc; then the base will 
  * be calculated on the color number. This way you 
  * can poison certain roots
  */   
- 
     case RPL_DAG_MC_LC: 
 		base = p->mc.obj.etx;
 
-		// George Can be safely disabled
-		//printf("RPL: case RPL_DAG_MC_LC\n");
-		
+		//printf("RTT THIS parent's base:%d\n",base);
+
+		/* use it to "poison" certain nodes */
 		//base = p->mc.obj.lc;
 		break;
-		
     case RPL_DAG_MC_ENERGY:
       base = p->mc.obj.energy.energy_est << 8;
       break;
@@ -184,8 +183,6 @@ parent_path_cost(rpl_parent_t *p)
   return MIN((uint32_t)base + parent_link_metric(p), 0xffff);
 }
 /*---------------------------------------------------------------------------*/
-
-
 
 
 static rpl_rank_t
@@ -207,8 +204,6 @@ rank_via_parent(rpl_parent_t *p)
 /*---------------------------------------------------------------------------*/
 
 
-
-
 static int
 parent_is_acceptable(rpl_parent_t *p)
 {
@@ -220,9 +215,6 @@ parent_is_acceptable(rpl_parent_t *p)
 /*---------------------------------------------------------------------------*/
 
 
-
-
-
 static int
 parent_has_usable_link(rpl_parent_t *p)
 {
@@ -231,8 +223,6 @@ parent_has_usable_link(rpl_parent_t *p)
   return link_metric <= MAX_LINK_METRIC;
 }
 /*---------------------------------------------------------------------------*/
-
-
 
 
 static rpl_parent_t *
@@ -253,9 +243,7 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
 #else 
   red_node_bonus = PARENT_SWITCH_THRESHOLD;
 #endif
-  
-  // George prints all neighbors !!!
-  //rpl_print_neighbor_list();
+
 
   p1_is_acceptable = p1 != NULL && parent_is_acceptable(p1);
   p2_is_acceptable = p2 != NULL && parent_is_acceptable(p2);
@@ -268,11 +256,19 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
   }
 
   dag = p1->dag; /* Both parents are in the same DAG. */
-  // George Original costs: we will just "adjust" them
   p1_cost = parent_path_cost(p1);
   p2_cost = parent_path_cost(p2);
+
+
+  if(p1->rank<129){
+  	printf("MRHOF10 p1 was the sink\n");
+  	return p1;
+  }
+  if(p2->rank<129){
+  	printf("MRHOF10 p2 was the sink\n");
+  	return p2;
+  } 
   
-   
 /* If the parent is RED, it has to be more "attractive".
  * "How attractive?" is a BIG story, with no answer...
  *
@@ -280,25 +276,26 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
  *
  * If both RED, again the "best" etx wins  
  */
-  if(p1->mc.obj.lc == RPL_DAG_MC_LC_RED){ // >128 exclude sink
-  		//printf("In parent NOT RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
-  		
+  if(p1->mc.l_color.lc == RPL_DAG_MC_LC_RED ){ // >128 exclude sink
+  		printf("MRHOF10 parent RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
+  		  		
   		p1_cost-=red_node_bonus ;// RED_NODE_BONUS DEPENDING ON HYSTERISIS; 
-  		/*
+
   		printf(", after: %u", p1_cost);
   		printf(", p1->rank:%d\n", p1->rank);
-  		printf("In p Other parent: %u with cost: %5u\n",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
-  		*/
+  		printf("MRHOF10 Other parent was: %u with cost: %5u\n",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
+  		
   }
-  if(p2->mc.obj.lc == RPL_DAG_MC_LC_RED ){ // >128 exclude sink
-  		//printf("In parent NOT RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
+  if(p2->mc.l_color.lc == RPL_DAG_MC_LC_RED ){ // >128 exclude sink
+  		printf("MRHOF10 parent RED %u. Changing Cost: Before: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
   		
   		p2_cost-=red_node_bonus;//RED_NODE_BONUS; 
-  		/*
+  		
+  		
   		printf(", after: %u", p2_cost);
   		printf(", p2->rank:%d\n", p2->rank);
-  		printf("In p Other parent: %u with cost: %5u\n",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
-  		*/
+  		printf("MRHOF10 Other parent was: %u with cost: %5u\n",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
+  		
   }
   
    
@@ -311,43 +308,31 @@ best_parent(rpl_parent_t *p1, rpl_parent_t *p2)
     }
   }
 
+
 /* This will happen only if parents have VERY different weights*/
 	//printf("In parents' difference >> hysterisis. Choosing parent:\n");
 	if (p1_cost < p2_cost){
-		/*
-		printf("In parent %u chosen. Cost: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
+		
+		printf("MRHOF10 parent %u chosen. Cost: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
 		printf(". Other parent %u, cost: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
 		printf(", my own rank %u\n",dag->rank);
 		printf("\n");
-		*/		
+			
 		return p1;
 	}
 	else{// they cannot be equal, since it would never come here...
-		/*
-		printf("In parent %u chosen. Cost: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
+		
+		printf("MRHOF10 parent %u chosen. Cost: %5u",rpl_get_parent_ipaddr(p2)->u8[15],p2_cost);
 		printf(". Other parent %u, cost: %5u",rpl_get_parent_ipaddr(p1)->u8[15],p1_cost);
 		printf(", my own rank %u\n",dag->rank);
 		printf("\n");
-		*/
+		
 		return p2;	
 	}
-
-// George Original return. Only the cost is tampered....
-//return p1_cost < p2_cost ?p1 : p2;
-
-  
-  //rpl_rank_t e2e = RPL_OF.calculate_rank(p1, 0);
-             //rpl_rank_t hbh = e2e - p1->rank;
-             //printf("    [ip ");
-             //uip_debug_ipaddr_print(&p->addr);
-             //printf("] ");
-             //printf(" rank: %5u + %5u = %5u", p1->rank, hbh, e2e);
-            // p == dag->preferred_parent ? printf(" PREF\n") : printf("\n");
-
+printf("MRHOF10 BIG PROBLEM: It should never come here!\n");
+return NULL;	
 }
 /*---------------------------------------------------------------------------*/
-
-
 
 
 static rpl_dag_t *
@@ -366,18 +351,12 @@ best_dag(rpl_dag_t *d1, rpl_dag_t *d2)
 /*---------------------------------------------------------------------------*/
 
 
-
-#if !RPL_WITH_MC // This is IF NOT MC
+#if !RPL_WITH_MC
 static void
 update_metric_container(rpl_instance_t *instance)
 {
   instance->mc.type = RPL_DAG_MC_NONE;
-  
-  // George: it should never come here when MC exists...
-  printf("RPL: RPL_DAG_MC_NONE\n");
-  
 }
-
 #else /* RPL_WITH_MC */
 static void
 update_metric_container(rpl_instance_t *instance)
@@ -385,63 +364,72 @@ update_metric_container(rpl_instance_t *instance)
   rpl_dag_t *dag;
   uint16_t path_cost;
   uint8_t type;
-  
+
+  uint16_t local_color;
+
+
   dag = instance->current_dag;
   if(dag == NULL || !dag->joined) {
-    PRINTF("RPL: Cannot update the metric container when not joined\n");
+    printf("RPL: Cannot update the metric container when not joined\n");
     return;
   }
 
   if(dag->rank == ROOT_RANK(instance)) {
-    
-/* George: RPL_DAG_MC is FIRST SET HERE. 
- * It is ONLY SET TO ROOT!
- * Configure MC at root only, other nodes are 
- * auto-configured when joining 
- */
+    /* Configure MC at root only, other nodes are auto-configured when joining */
     instance->mc.type = RPL_DAG_MC;
-
-    //George: Testing only
-    printf("RPL: instance->mc.type =%d\n",RPL_DAG_MC); 
-
     instance->mc.flags = 0;
     instance->mc.aggr = RPL_DAG_MC_AGGR_ADDITIVE;
     instance->mc.prec = 0;
     path_cost = dag->rank;
 
+
+//	 printf("MRHOF10 Sink node_color : %d\n",node_color);
+	 //printf("MRHOF10 Sink's instance->mc.lc = %d\n",instance->mc.lc);
+	 
+	 //instance->mc.lc = node_color;
+
+    
   } else {
+  	 //printf("path cost derived from parent...\n");
     path_cost = parent_path_cost(dag->preferred_parent);
   }
 
   /* Handle the different MC types */
   switch(instance->mc.type) {
     case RPL_DAG_MC_NONE:
-    	
-    	// George: It should NEVER come here with containers enabled
-    	printf("RPL: MRHOF10 case RPL_DAG_MC_NONE\n");
-    	
+    printf("RPL_DAG_MC_NONE\n");
       break;
     case RPL_DAG_MC_ETX:
+    	printf("RPL_DAG_MC_ETX\n");
       instance->mc.length = sizeof(instance->mc.obj.etx);
       instance->mc.obj.etx = path_cost;
       break;
-      
+   
+   
+   
+   
+   
+   
+   
+/*********************** LINK COLOR *********************/
+    case RPL_DAG_MC_LC:
 
-/* George: Remember, in here it only sets the length
- * of the container and sets the object lc to
- * node_color for each node. 
- * Calculating the path, DOES NOT HAPPEN HERE,
- * it happens in best_parent()
- */ 
-    case RPL_DAG_MC_LC: 
-      instance->mc.length = sizeof(instance->mc.obj.lc);
-      instance->mc.obj.lc = node_color;    
+      instance->mc.length = sizeof(instance->mc.obj.etx);      
+      instance->mc.obj.etx = path_cost;
+      //printf("MRHOF10: mc.obj.etx = %d\n",instance->mc.obj.etx);
       
-// we have to carry the alternative parents here???
-
-      //printf("RPL: inside case, node_color=%d\n",node_color);
+		instance->mc.l_color.lc = node_color;
+      //printf("MRHOF10: instance->mc.l_color.lc: %d\n",instance->mc.l_color.lc); 
+      
       break;
-
+/*******************************************************/
+  
+  
+  
+  
+  
+  
+            
     case RPL_DAG_MC_ENERGY:
       instance->mc.length = sizeof(instance->mc.obj.energy);
       if(dag->rank == ROOT_RANK(instance)) {
@@ -454,18 +442,12 @@ update_metric_container(rpl_instance_t *instance)
       instance->mc.obj.energy.energy_est = path_cost >> 8;
       break;
     default:
-      // George: It should never come here if MC is valid
-      printf("RPL: MRHOF10, non-supported MC %u\n", instance->mc.type);
       PRINTF("RPL: MRHOF10, non-supported MC %u\n", instance->mc.type);
       break;
   }
 }
 #endif /* RPL_WITH_MC */
 /*---------------------------------------------------------------------------*/
-
-
-
-
 rpl_of_t rpl_mrhof10 = {
   reset,
 #if RPL_WITH_DAO_ACK
@@ -478,7 +460,7 @@ rpl_of_t rpl_mrhof10 = {
   best_parent,
   best_dag,
   update_metric_container,
-  RPL_OCP_MRHOF10 //George: name of the OF
+  RPL_OCP_MRHOF10
 };
 
-/** @}*/  
+/** @}*/

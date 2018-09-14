@@ -50,7 +50,7 @@ typedef uint16_t rpl_rank_t;
 typedef uint16_t rpl_ocp_t;
 /*---------------------------------------------------------------------------*/
 /* IANA Routing Metric/Constraint Type as defined in RFC6551 */
-#define RPL_DAG_MC_NONE			            0 /* Local identifier for empty MC */
+#define RPL_DAG_MC_NONE			          0 /* Local identifier for empty MC */
 #define RPL_DAG_MC_NSA                  1 /* Node State and Attributes */
 #define RPL_DAG_MC_ENERGY               2 /* Node Energy */
 #define RPL_DAG_MC_HOPCOUNT             3 /* Hop Count */
@@ -92,34 +92,33 @@ typedef uint16_t rpl_ocp_t;
 
 // George
 /* Colors for LINK COLOR. Add as many as needed...*/
-#define RPL_DAG_MC_LC_WHITE  0
-#define RPL_DAG_MC_LC_BROWN  1
-#define RPL_DAG_MC_LC_GREEN  2
-#define RPL_DAG_MC_LC_YELLOW 3
-#define RPL_DAG_MC_LC_BLACK  4
+#define RPL_DAG_MC_LC_BROWN  0
+#define RPL_DAG_MC_LC_GREEN  1
+#define RPL_DAG_MC_LC_WHITE  2
+#define RPL_DAG_MC_LC_ORANGE 3
+#define RPL_DAG_MC_LC_PURPLE 4
 #define RPL_DAG_MC_LC_RED    5
 
 #ifndef print6addr
 #define print6addr(addr) printf(" %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 #endif
 
+// George print only the last part of the address (e.g. 02)
+#define printShortaddr(addr) printf(" %02x ",((uint8_t *)addr)[15])
 
-uint16_t node_color;  //George
 
-
-/* George: color of node is RED by default if not set
- * This way the sink gets to be RED as well
- */
-// try this also...
-#ifndef NODE_COLOR
-#define NODE_COLOR RPL_DAG_MC_LC_RED
-#endif
+uint8_t node_color ;  //George
 
 
 struct rpl_metric_object_energy {
   uint8_t flags;
   uint8_t energy_est;
 };
+
+struct rpl_metric_object_lc {
+  uint8_t lc;
+};
+
 
 /* Logical representation of a DAG Metric Container. */
 struct rpl_metric_container {
@@ -128,20 +127,19 @@ struct rpl_metric_container {
   uint8_t aggr;
   uint8_t prec;
   uint8_t length;
+
+  struct rpl_metric_object_lc l_color; //George
+
   union metric_object {
     struct rpl_metric_object_energy energy;
     uint16_t etx;
-    
-	 uint16_t lc; //George: Color support
-        
-        
   } obj;
+  
+  //uint16_t lc; //George 
+    
 };
 typedef struct rpl_metric_container rpl_metric_container_t;
 
-
-// George print only the last part of the address (e.g. 02)
-#define printShortaddr(addr) printf(" %02x ",((uint8_t *)addr)[15])
 
 
 /*---------------------------------------------------------------------------*/
