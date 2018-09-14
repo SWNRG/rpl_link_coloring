@@ -35,6 +35,14 @@
 // this has to be defined in EVERY station for randomness
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
+
+
+
+
+extern uint8_t node_color ;
+
+
+
 static uint32_t sent_time=0; // to me
 static unsigned int message_number;
 static int counter=0;
@@ -44,7 +52,7 @@ rpl_dag_t *cur_dag; // to use in local_repair()
 static struct simple_udp_connection unicast_connection;
 
 /*---------------------------------------------------------------------------*/
-PROCESS(receiver_node_process, "Receiver node");
+PROCESS(receiver_node_process, "Receiver node process");
 AUTOSTART_PROCESSES(&receiver_node_process);
 /*---------------------------------------------------------------------------*/
 
@@ -108,7 +116,7 @@ receiver(struct simple_udp_connection *c,
          uint16_t datalen)
 {
 
-  //printf("DATA: In p '%s' received from ",data);
+  printf("DATA: In p '%s' received from ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   
@@ -139,7 +147,7 @@ static void reset_dag(unsigned int start, unsigned int end){
 		printf("RTT# In p Node Calling local repair...\n");
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 }
 /*------------------------------------------------------------------*/
@@ -152,15 +160,19 @@ PROCESS_THREAD(receiver_node_process, ev, data)
 	static struct etimer send_timer;
 
 
+	PROCESS_BEGIN();
+	
+	
 /******************** NODE COLOR LC *****************************/
-	node_color = RPL_DAG_MC_LC_RED; //Node color = 5
+	node_color = RPL_DAG_MC_LC_ORANGE; //Node color = 3
 /****************************************************************/
 
-	PROCESS_BEGIN();
+
 
 	set_global_address();
 
-   printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START+1,DAG_RESET_STOP+1);
+   printf("RTT# local repair scheduled:%d, %d\n",
+   	DAG_RESET_START+1,DAG_RESET_STOP+1);
   		
    simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);

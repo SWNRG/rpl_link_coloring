@@ -42,6 +42,7 @@
 // this has to be defined in EVERY station for randomness
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
+extern uint8_t node_color;
 
 rtimer_clock_t sent_time; // to me
 rtimer_clock_t time_now; //rtimer time
@@ -99,7 +100,7 @@ static void reset_dag(unsigned int start, unsigned int end){
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
@@ -212,12 +213,12 @@ PROCESS_THREAD(sender_node_process, ev, data)
   static struct etimer periodic_timer;
   static struct etimer send_timer;
 
+  PROCESS_BEGIN();
+  
 /******************** NODE COLOR LC **********************/
   node_color = RPL_DAG_MC_LC_RED; //Node color = 5
 /*********************************************************/
   
-  PROCESS_BEGIN();
-
   set_global_address();
 
   printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START+1,DAG_RESET_STOP+1);
@@ -254,7 +255,7 @@ PROCESS_THREAD(sender_node_process, ev, data)
 	
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());
 	if(counter%11 == 0){
-		printf("R:%d, Node COLOR: %d\n",counter,node_color);
+		//printf("R:%d, Node COLOR: %d\n",counter,node_color);
 	}	
 
 	

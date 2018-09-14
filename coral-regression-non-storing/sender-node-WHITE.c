@@ -23,13 +23,19 @@
 
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
+
+
+extern uint8_t color_node ;
+
+
+
 rtimer_clock_t sent_time; // to me
 rtimer_clock_t time_now; //rtimer time
  
 static unsigned int message_number;
 
 static int counter=0;
-  
+
 rpl_dag_t *cur_dag; // to use in local_repair()
 
 static struct simple_udp_connection unicast_connection;
@@ -79,7 +85,7 @@ static void reset_dag(unsigned int start, unsigned int end){
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
@@ -187,17 +193,17 @@ PROCESS_THREAD(sender_button_press_process, ev, data)
 }
 
 
-
-
 PROCESS_THREAD(sender_node_process, ev, data)
 {
   static struct etimer periodic_timer;
   static struct etimer send_timer;
 
+  PROCESS_BEGIN();
+  
 /******************** NODE COLOR LC **********************/
   node_color = RPL_DAG_MC_LC_WHITE; //Node color = 1
 /*********************************************************/
-  PROCESS_BEGIN();
+
 
   set_global_address();
 
@@ -223,7 +229,7 @@ PROCESS_THREAD(sender_node_process, ev, data)
     etimer_reset(&periodic_timer);
 
 /******************* SENDING MESSAGES ************************/
-	 sender(2); // send message: NUM IS THE NODE ID
+	 //sender(2); // send message: NUM IS THE NODE ID
 /*************************************************************/
 	
 	// local repairs DO NOT SEEM TO WORK without a global repair...

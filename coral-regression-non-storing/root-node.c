@@ -43,6 +43,8 @@ static struct simple_udp_connection unicast_connection;
 rpl_dag_t *dag; // moved here to be treated as global
 
 static int counter=0;
+
+extern uint8_t node_color ;
   
 /*---------------------------------------------------------------------------*/
 PROCESS(button_server_process, "Button press server process");
@@ -79,26 +81,35 @@ set_global_address(void)
 
 static void change_OF(unsigned int start, unsigned int end){
 
-	//printf("RTT# Global repair scheduled:%d. %d\n",start,end);
- 
 	if(counter == start){ //Change OF in real time
-		//printf("RTT# R:%d, In p OF_C Changing OF\n",counter);
-		//dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
-		dag->instance->of->ocp = RPL_OCP_MRHOF10; // 4
+
+		 //dag->instance->of->ocp = RPL_OCP_MRHOF; // original !!!
+		
+		dag->instance->of->ocp = RPL_OCP_MRHOF2; // 3
+		
+		//dag->instance->of->ocp = RPL_OCP_MRHOF10; // 4
+		
 		while( rpl_repair_root(RPL_DEFAULT_INSTANCE) != 1 ){
 			printf("RTT# In p RPL repair NOT succesful\n");
 			rpl_repair_root(RPL_DEFAULT_INSTANCE);
 		}
 		printf("RTT# In p RPL repair succesful\n");
+				
+		//rpl_recalculate_ranks();
+		
 	}
 	if(counter == end){ //Change OF back to oginal
-		printf("RTT# R:%d, In p OF_C Changing OF=RPL_OCP_MRHOF\n",counter);
-		dag->instance->of->ocp = RPL_OCP_MRHOF; // 1
+
+		dag->instance->of->ocp = RPL_OCP_MRHOF; 
+				
 		while( rpl_repair_root(RPL_DEFAULT_INSTANCE) != 1 ){
 			printf("RTT# In p RPL repair NOT succesful\n");
 			rpl_repair_root(RPL_DEFAULT_INSTANCE);
 		}
 		printf("RTT# In p RPL repair succesful\n");
+		
+		//rpl_recalculate_ranks();
+		
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -114,7 +125,7 @@ receiver(struct simple_udp_connection *c,
          uint16_t datalen)
 {
   
-  //printf("In p '%s' received from ",data);
+  printf("In p '%s' received from ",data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
   
@@ -200,6 +211,8 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
   uip_ipaddr_t *ipaddr;
   static struct etimer periodic_timer;
 
+  PROCESS_BEGIN();
+  
 /* As root, the color has to be RED, correct?
  * So, if a child with two RED parents, will choose 
  * less etx, i.e. the sink.
@@ -209,17 +222,10 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
  * There is no case with no RED color when sink is involved...
  */
 /******************** NODE COLOR LC **********************/
-  node_color = RPL_DAG_MC_LC_RED; //Node color = 5
+  node_color = RPL_DAG_MC_LC_RED; //Node color = 0  
 /*********************************************************/   
+ 
 
-/* Latest NOTE: The sink DOESNOT consider its color.
- * obviously it does not have .mc.lc
- */
-
-
-	
-	  
-  PROCESS_BEGIN();
 
   ipaddr = set_global_address();
 
@@ -261,17 +267,17 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 
 /********************* PRINTOUTS ************************/	
 	
-	if(RPL_OF_OCP != dag->instance->of->ocp && counter%10 == 0){ //in case OF changes...
-		printf("RTT# R:%d, In p Current Obj.Func= %u. Original RPL_OF_OCP=%d \n", 
-			counter, dag->instance->of->ocp,RPL_OF_OCP);
-	}else if(counter%10 == 0){ // print the OF every ten rounds....
-		 //printf("RPL: variable value RPL_OF_OCP %d\n", RPL_OF_OCP);
-		 printf("RTT# R:%d, Current Obj.Func: %u\n", 
+	 if(counter == 1){
+	 	printf("RTT# R:%d, Current Obj.Func: %u\n", 
 			 counter, dag->instance->of->ocp);
-	}
+	 }
+	 if(counter == DAG_RESET_START+2 || counter == DAG_RESET_STOP+2){
+	 	printf("RTT# R:%d, Current Obj.Func: %u\n", 
+			 counter, dag->instance->of->ocp);
+	 }
 	
-	if(counter%11 == 0){
-		printf("R:%d, Node COLOR: %d\n",counter,node_color);
+	//print once only
+	if(counter == 1){
 		//printf("RPL_MRHOF_SQUARED_ETX: %d\n", RPL_MRHOF_SQUARED_ETX); 
 
 		if(RPL_CONF_WITH_NON_STORING !=1){

@@ -1,6 +1,8 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
+
+
 // Enable Link Color: Remember, it still estimates etx 
 #ifndef RPL_CONF_DAG_MC
 #define RPL_CONF_DAG_MC RPL_DAG_MC_LC
@@ -16,8 +18,8 @@
 
 
 /* Centrally control the repairs(Global & local) for all nodes */
-#define DAG_RESET_START_CONF 5 //First global repair
-#define DAG_RESET_STOP_CONF  50 //Second global repair
+#define DAG_RESET_START_CONF 10 //First global repair
+#define DAG_RESET_STOP_CONF  40 //Second global repair
 
 
 #ifdef DAG_RESET_START_CONF
@@ -50,7 +52,17 @@
 //George: Change Objective Function HERE
 #ifndef RPL_CONF_OF_OCP
 //#define RPL_CONF_OF_OCP RPL_OCP_MRHOF2 // original is RPL_OCP_MRHOF
+
+
+
+
+//testing 
+
 #define RPL_CONF_OF_OCP RPL_OCP_MRHOF
+
+
+
+
 #endif 
 
 
@@ -73,7 +85,6 @@
 
 
 #if WITH_NON_STORING
-
 #undef RPL_CONF_MOP
 #define RPL_CONF_MOP RPL_MOP_NON_STORING /* Mode of operation*/
 #endif /* WITH_NON_STORING */

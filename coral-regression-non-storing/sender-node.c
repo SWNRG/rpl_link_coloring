@@ -43,6 +43,11 @@
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
 
+extern uint8_t color_node ;
+
+
+
+
 rtimer_clock_t sent_time; // to me
 rtimer_clock_t time_now; //rtimer time
  
@@ -53,7 +58,6 @@ static int counter=0;
 rpl_dag_t *cur_dag; // to use in local_repair()
 
 static struct simple_udp_connection unicast_connection;
-
 
 // new way, looks more stable
 rtimer_clock_t *rtime_new_sent;
@@ -99,14 +103,14 @@ static void reset_dag(unsigned int start, unsigned int end){
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
 		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
+		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -161,11 +165,22 @@ receiver(struct simple_udp_connection *c,
 
   	if(RTIMER_CLOCK_LT(time_now,sent_time)){// if arg1<arg2
 		printf("RTIMER restarted...\n");
-		printf("time_now: %d\n",time_now);
-		printf("RTIMER_ARCH_SECOND:%u\n",RTIMER_ARCH_SECOND);
+		printf("RT time_now: %u. sent_time: %u\n",time_now, sent_time);
+		//printf("RTIMER_ARCH_SECOND:%u\n",RTIMER_ARCH_SECOND);
+		
+		//printf("RT time_now-RTIMER_ARCH_SECOND:%u\n",time_now-RTIMER_ARCH_SECOND);
+		//printf("RT time_now+RTIMER_ARCH_SECOND:%u\n",time_now+RTIMER_ARCH_SECOND);
 
-// the variable prints as negative ???
+
+
+
+
+// the variable prints as negative ???               ???
 		time_now-=RTIMER_ARCH_SECOND; 
+		printf("RT time_now-RTIMER_ARCH_SECOND:%u\n",time_now);
+
+
+
 	}
    time_now -= sent_time;
 
@@ -212,12 +227,12 @@ PROCESS_THREAD(sender_node_process, ev, data)
   static struct etimer periodic_timer;
   static struct etimer send_timer;
 
+  PROCESS_BEGIN();
+  
 /******************** NODE COLOR LC **********************/
-  node_color = RPL_DAG_MC_LC_WHITE; //Node color = 1
+  node_color = RPL_DAG_MC_LC_PURPLE; //Node color = 4
 /*********************************************************/
   
-  PROCESS_BEGIN();
-
   set_global_address();
 
   simple_udp_register(&unicast_connection, UDP_PORT,
@@ -235,7 +250,7 @@ PROCESS_THREAD(sender_node_process, ev, data)
   etimer_set(&periodic_timer, SEND_INTERVAL);
   
   while(1) {
-	 
+
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
     etimer_reset(&periodic_timer);
 
@@ -253,11 +268,13 @@ PROCESS_THREAD(sender_node_process, ev, data)
 	 * (+1) so it follows the global repair
 	 */
    reset_dag(DAG_RESET_START+1,DAG_RESET_STOP+1);	
+
+	// it doesn't print anything !!!!!!!!!!!!
+	//printf("RTT# dag->instance->of->ocp:\n",cur_dag->instance->of->ocp);
 	
-	printf("dag->instance->of->ocp:",dag->instance->of->ocp);
     //printf("R:%d, Leaf MODE: %d\n",counter,rpl_get_mode());
 	if(counter%11 == 0){
-		printf("RTT# R:%d, Node COLOR: %d\n",counter,node_color);
+		//printf("RTT# R:%d, Node COLOR: %d\n",counter,node_color);
 	}	
 
 	
