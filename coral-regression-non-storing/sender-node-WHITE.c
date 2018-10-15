@@ -82,17 +82,17 @@ static void reset_dag(unsigned int start, unsigned int end){
 	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 	
 	if(counter == start){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c 
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -235,7 +235,11 @@ PROCESS_THREAD(sender_node_process, ev, data)
 	// local repairs DO NOT SEEM TO WORK without a global repair...
 	
 
-
+    //printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
+    //printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
+    
+    printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
+    printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);
 	
 	
 /********************** Nothing beyond this point *************/    

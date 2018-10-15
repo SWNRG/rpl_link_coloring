@@ -38,14 +38,13 @@
 // this has to be defined in EVERY station for randomness
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
+extern uint8_t node_color ;
 
 static struct simple_udp_connection unicast_connection;
 rpl_dag_t *dag; // moved here to be treated as global
 
 static int counter=0;
 
-extern uint8_t node_color ;
-  
 /*---------------------------------------------------------------------------*/
 PROCESS(button_server_process, "Button press server process");
 PROCESS(unicast_receiver_process, "Unicast server receiver process");
@@ -95,7 +94,7 @@ static void change_OF(unsigned int start, unsigned int end){
 		}
 		printf("RTT# In p RPL repair succesful\n");
 				
-		//rpl_recalculate_ranks();
+		rpl_recalculate_ranks();
 		
 	}
 	if(counter == end){ //Change OF back to oginal
@@ -108,7 +107,7 @@ static void change_OF(unsigned int start, unsigned int end){
 		}
 		printf("RTT# In p RPL repair succesful\n");
 		
-		//rpl_recalculate_ranks();
+		rpl_recalculate_ranks();
 		
 	}
 }
@@ -124,16 +123,18 @@ receiver(struct simple_udp_connection *c,
          const uint8_t *data,
          uint16_t datalen)
 {
-  
-  printf("In p '%s' received from ",data);
-  uip_debug_ipaddr_print(sender_addr);
-  printf("\n");
+
+  //printf("DATA: In p '%s' received from ",data);
+  //uip_debug_ipaddr_print(sender_addr);
+  //printf("\n");
   
 /*********** Sending back the received message *********************/
 
-  printf("In p sending '%s' BACK to ",data);
+  printf("R:%d, msg '%s' recvd. Sending BACK to ",counter,data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
+  
+  //sending back to sender_addr
   simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
 
 /********************************************************************/
@@ -174,8 +175,7 @@ PROCESS_THREAD(button_server_process, ev, data)
 
   while(1){
     PROCESS_YIELD();
-   
-   
+    
    	// maybe again here ???? dag = rpl_get_any_dag(); 
     	if (ev == sensors_event && data == &button_sensor) {
     		PRINTF("DATA Sender Sink button pressed...\n");
@@ -196,8 +196,7 @@ PROCESS_THREAD(button_server_process, ev, data)
 			// Dont forget to reset rpl
 			if( rpl_repair_root(RPL_DEFAULT_INSTANCE) == 1 ){
 				printf("DATA: Sender Sink RPL repair succesful\n");
-			}
-			
+			}		
 /*******************************************************************/
     }
   }
@@ -225,17 +224,22 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
   node_color = RPL_DAG_MC_LC_RED; //Node color = 0  
 /*********************************************************/   
  
-
-
   ipaddr = set_global_address();
 
   create_rpl_dag(ipaddr);
 
-  printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START,DAG_RESET_STOP);
+  printf("RTT# local repair scheduled:%d. %d\n", DAG_RESET_START,DAG_RESET_STOP);
   
-/******************* Creating a UDP UNICAST CONNECTION **********/
-  simple_udp_register(&unicast_connection, UDP_PORT,
-                      NULL, UDP_PORT, receiver);
+  
+/******** Creating a UDP UNICAST CONNECTION **********/
+  if (simple_udp_register(&unicast_connection, UDP_PORT, 
+  		NULL, UDP_PORT, receiver) == 1)
+  	{
+  		printf("simple_udp_register started succesfully\n");
+  	}
+  	else{
+  		printf("simple_udp_register DID NOT start\n");
+  	}  
 /***************************************************************/
 
   // 60*CLOCK_SECOND should print for RM090 every one (1)  min
@@ -279,15 +283,23 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 	//print once only
 	if(counter == 1){
 		//printf("RPL_MRHOF_SQUARED_ETX: %d\n", RPL_MRHOF_SQUARED_ETX); 
-
 		if(RPL_CONF_WITH_NON_STORING !=1){
 			printf("RTT# In p RPL IN STORING MODE\n"); 
 		}
 		else{
-			printf("RTT# In p RPL IN NO STORING MODE\n"); 
+			printf("RTT# In p RPL IN NON STORING MODE\n"); 
 		}
 	}
 
+
+    //printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
+    //printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
+    
+    printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
+    printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);
+
+    
+/************ NOTHING BEYOND THIS POINT ************/
 	counter++;
   }
   PROCESS_END();

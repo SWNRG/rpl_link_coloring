@@ -44,7 +44,7 @@
 
 
 extern uint8_t color_node ;
-
+extern uint8_t aggregator ; 
 
 
 
@@ -100,17 +100,17 @@ static void reset_dag(unsigned int start, unsigned int end){
 	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 
 	if(counter == start){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c 
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -124,9 +124,10 @@ static void sender(unsigned int nodeID){
 	// Works correctly sending to any node: Change only nodeID
 	uip_ip6addr(&addr, UIP_DS6_DEFAULT_PREFIX, 0, 0, 0, 0xc30c, 0, 0, nodeID);
 
-	printf("DATA: In p Sending unicast MSG no %d to ",message_number);
+	printf("R:%d, Sending unicast msg No %d to ",counter,message_number);
 	uip_debug_ipaddr_print(&addr);
 	printf("\n");
+	
 	sprintf(buf, "Message %d", message_number);
 	message_number++;
 
@@ -156,7 +157,7 @@ receiver(struct simple_udp_connection *c,
    rtime_new_recv = rtimer_arch_now();
    //printf("rt_new_sent: %u, rt_new_recv: %u\n", rtime_new_sent, rtime_new_recv);
    rtime_new_recv = rtime_new_recv - rtime_new_sent;
-	printf("RTT rt_new_diff: %u\n", rtime_new_recv);
+	//printf("msg RTT rt_new_diff: %u\n", rtime_new_recv);
   	timer_restart(rtime_new_sent); //restart the timer every time
 /***************************************************************?	
 	
@@ -164,38 +165,33 @@ receiver(struct simple_udp_connection *c,
    time_now = RTIMER_NOW(); //maybe it was restarted
 
   	if(RTIMER_CLOCK_LT(time_now,sent_time)){// if arg1<arg2
-		printf("RTIMER restarted...\n");
-		printf("RT time_now: %u. sent_time: %u\n",time_now, sent_time);
+		//printf("msg RTIMER restarted...\n");
+		//printf("msg RT time_now: %u. sent_time: %u\n",time_now, sent_time);
 		//printf("RTIMER_ARCH_SECOND:%u\n",RTIMER_ARCH_SECOND);
 		
 		//printf("RT time_now-RTIMER_ARCH_SECOND:%u\n",time_now-RTIMER_ARCH_SECOND);
 		//printf("RT time_now+RTIMER_ARCH_SECOND:%u\n",time_now+RTIMER_ARCH_SECOND);
 
-
-
-
-
 // the variable prints as negative ???               ???
 		time_now-=RTIMER_ARCH_SECOND; 
-		printf("RT time_now-RTIMER_ARCH_SECOND:%u\n",time_now);
-
-
-
+		//printf("msg RT time_now-RTIMER_ARCH_SECOND:%u\n",time_now);
 	}
    time_now -= sent_time;
-
-
-  printf("DATA: In p Sender received back: '%s'. RTT:%d",data,time_now);
-  printf(", last local Msg Num: %d\n", message_number-1);
+   
+/********************measure the RTT from cooja timers **********/
+  printf("R:%d, Sender received msg back: '%s'\n",counter,data); 
+ /**************************************************************/
+  
+  //printf("R:%d, Sender received msg back: '%s'. RTT:%d",counter,data,time_now);
+  //printf(", last local Msg Num: %d\n", message_number-1);
   
 /****************** EASY TO EXTRACT DATA ************************/
-  printf("RTT# %d\n", time_now); // ready for extraction
+  //printf("RTT# %d\n", time_now); // ready for extraction
 /****************************************************************/  
   
   // Trying to extract the message number out of data
   char gg = *data;
   char *tt="Message";
-
   //printf("DATA tt: '%s'\n",tt);
 }
 /*--------------------------------------------------------------------*/
@@ -277,7 +273,11 @@ PROCESS_THREAD(sender_node_process, ev, data)
 		//printf("RTT# R:%d, Node COLOR: %d\n",counter,node_color);
 	}	
 
-	
+    //printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
+    //printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
+    
+    printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
+    printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);	
 	
 /********************** Nothing beyond this point *************/    
     counter++;

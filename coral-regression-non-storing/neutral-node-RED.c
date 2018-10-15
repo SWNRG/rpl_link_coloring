@@ -42,7 +42,11 @@
 // this has to be defined in EVERY station for randomness
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
+
 extern uint8_t node_color;
+extern uint8_t aggregator;
+
+
 
 rtimer_clock_t sent_time; // to me
 rtimer_clock_t time_now; //rtimer time
@@ -97,17 +101,17 @@ static void reset_dag(unsigned int start, unsigned int end){
 	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 
 	if(counter == start){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n"); // IS Msg in rpl.dag.c ???
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK	
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -221,10 +225,15 @@ PROCESS_THREAD(sender_node_process, ev, data)
   
   set_global_address();
 
-  printf("RTT# local repair scheduled:%d. %d\n",DAG_RESET_START+1,DAG_RESET_STOP+1);
+  printf("RTT# local repair scheduled:%d. %d\n",
+  		DAG_RESET_START+1, DAG_RESET_STOP+1);
   
-  simple_udp_register(&unicast_connection, UDP_PORT,
-                      NULL, UDP_PORT, receiver);
+  
+  
+  //test to turn of receiver
+  
+  //simple_udp_register(&unicast_connection, UDP_PORT,
+     //                 NULL, UDP_PORT, receiver);
 
  /* 60*CLOCK_SECOND should print for RM090 every one (1) min
   * etimer_set(&periodic_timer, 60*CLOCK_SECOND);
@@ -258,6 +267,11 @@ PROCESS_THREAD(sender_node_process, ev, data)
 		//printf("R:%d, Node COLOR: %d\n",counter,node_color);
 	}	
 
+    //printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
+    //printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
+    
+    //printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
+    //printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);
 	
 	
 /********************** Nothing beyond this point *************/    

@@ -5,25 +5,27 @@
 #include "net/ip/uip.h"
 #include "net/ipv6/uip-ds6.h"
 #include "net/ip/uip-debug.h"
+#include "dev/button-sensor.h"
 #include "simple-udp.h"
 #include "net/rpl/rpl.h"
 #include "dev/leds.h"
+
 #include <stdio.h>
 #include <string.h>
-#include "dev/button-sensor.h"
 
 #define UDP_PORT 1234
 
-
-#ifndef DAG_RESET_START_CONF
+/******* Centrally defined both in project-conf.h **********/
+#ifndef DAG_RESET_START
 // remember: has to do with SEND_INTERVAL_CONF
 #define DAG_RESET_START 10
 #endif 
 
-#ifndef DAG_RESET_STOP_CONF
+#ifndef DAG_RESET_STOP
 // remember: has to do with SEND_INTERVAL_CONF
 #define DAG_RESET_STOP 40
 #endif 
+/************************************************************/
 
 #ifdef SEND_INTERVAL_CONF // In project-conf.h
 #define SEND_INTERVAL		SEND_INTERVAL_CONF
@@ -36,12 +38,8 @@
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
 
-
-
-
 extern uint8_t node_color ;
-
-
+extern uint8_t aggregator ;
 
 static uint32_t sent_time=0; // to me
 static unsigned int message_number;
@@ -116,15 +114,17 @@ receiver(struct simple_udp_connection *c,
          uint16_t datalen)
 {
 
-  printf("DATA: In p '%s' received from ",data);
-  uip_debug_ipaddr_print(sender_addr);
-  printf("\n");
+  //printf("DATA: In p '%s' received from ",data);
+  //uip_debug_ipaddr_print(sender_addr);
+  //printf("\n");
   
 /*********** Sending back the received message *********************/
 
-  printf("In p sending '%s' BACK to ",data);
+  printf("R:%d, msg '%s' recvd. Sending BACK to ",counter,data);
   uip_debug_ipaddr_print(sender_addr);
   printf("\n");
+  
+  //sending back to sender_addr
   simple_udp_sendto(&unicast_connection, data, strlen(data) + 1, sender_addr);
 
 /********************************************************************/
@@ -137,17 +137,17 @@ static void reset_dag(unsigned int start, unsigned int end){
 	//printf("RTT# local repair scheduled:%d. %d\n",start,end);
 
 	if(counter == start){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n");
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
 		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 
 	if(counter == end){ //One round after global repair
-		printf("RTT# In p Node Calling local repair...\n");
+		//printf("RTT# In p Node Calling local repair...\n"); // Msg in rpl.dag.c
 		cur_dag = rpl_get_any_dag(); //get the current dag
 		rpl_local_repair(cur_dag->instance);
-		//rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
+		rpl_recalculate_ranks(); // IT DOES NOT SEEM TO WORK
 	}
 }
 /*------------------------------------------------------------------*/
@@ -159,15 +159,11 @@ PROCESS_THREAD(receiver_node_process, ev, data)
 	static struct etimer periodic_timer;
 	static struct etimer send_timer;
 
-
 	PROCESS_BEGIN();
-	
 	
 /******************** NODE COLOR LC *****************************/
 	node_color = RPL_DAG_MC_LC_ORANGE; //Node color = 3
 /****************************************************************/
-
-
 
 	set_global_address();
 
@@ -199,7 +195,11 @@ PROCESS_THREAD(receiver_node_process, ev, data)
 		//printf("R:%d, Node COLOR: %d\n",counter,node_color);
 	}	
 	
-
+    //printf("R:%d, udp_sent:%d\n",counter,uip_stat.udp.sent);
+    //printf("R:%d, udp_recv:%d\n",counter,uip_stat.udp.recv);	
+    
+    printf("R:%d, icmp_sent:%d\n",counter,uip_stat.icmp.sent);
+    printf("R:%d, icmp_recv:%d\n",counter,uip_stat.icmp.recv);
 	
 	
 /********************** Nothing beyond this point *************/    

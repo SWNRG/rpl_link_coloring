@@ -2,6 +2,7 @@
 #define PROJECT_CONF_H_
 
 
+#define UIP_CONF_STATISTICS 1   // Tryfon stats on icmp, udp ON
 
 // Enable Link Color: Remember, it still estimates etx 
 #ifndef RPL_CONF_DAG_MC
@@ -18,8 +19,8 @@
 
 
 /* Centrally control the repairs(Global & local) for all nodes */
-#define DAG_RESET_START_CONF 10 //First global repair
-#define DAG_RESET_STOP_CONF  40 //Second global repair
+#define DAG_RESET_START_CONF 30 //First global repair
+#define DAG_RESET_STOP_CONF  61 //Second global repair
 
 
 #ifdef DAG_RESET_START_CONF
@@ -46,7 +47,7 @@
 
 /* George: NON-STORING MODE */
 #ifndef RPL_CONF_WITH_NON_STORING
-#define RPL_CONF_WITH_NON_STORING 0
+#define RPL_CONF_WITH_NON_STORING 1
 #endif
 
 //George: Change Objective Function HERE
