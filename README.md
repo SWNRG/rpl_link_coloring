@@ -1,6 +1,6 @@
 # rpl_link_coloring
 
-In this project, the RPL Link Coloring is used in a new Objective Function to support peer-to-peer communication, since RPL cannot do this efficiently.
+In this project, the RPL Link Coloring is used with a new Objective Function to support peer-to-peer communication, since RPL cannot do this efficiently.
 The basic idea is to create a DODAG which will support the direct communication of two any nodes in the network, and on the same time bring the least disturbance to the rest.
 ![Image description](./multi-mrhof2.png)
 Notice in the cooja screenshot above that there are four (4) different sets of nodes: white -non participating to p2p, purple-sender, red-participating to p2p nodes, and orange (No 2) which is the receiver. By using the standard MRHOF the communication between nodes 3-->2 is unreliable and ofter fails. As soon as the new MRHOF2 is activated, the communication between them is highly improved. Nodes "below" the yellow ones (remember the yellow are colored "red" in the MRHOF2) are experiencing a worsening intho their communication with the sink since now the path to the sink is becoming "bigger".
