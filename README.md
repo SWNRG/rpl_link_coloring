@@ -1,4 +1,5 @@
 # rpl_link_coloring
+rpl_link_coloring/multi-mrhof2.png
 How to use this directory:
 You can download the contiki github, https://github.com/contiki-os/contiki and replace the contiki/core/net/rpl folder with the folder rpl found here. 
 You can find cooja ready experiments/simulations for both storing and non-storing modes. 
