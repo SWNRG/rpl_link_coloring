@@ -1,5 +1,10 @@
 # rpl_link_coloring
-Alteration of contiki/rpl to support link color:
+How to use this directory:
+You can download the contiki github, https://github.com/contiki-os/contiki and replace the contiki/core/net/rpl folder with the folder rpl found here. 
+You can find cooja ready experiments/simulations for both storing and non-storing modes. 
+The basic nodes are: a sink (udp-server), a static client (udp-client-static) and a mobile client (udp-client-mobile). The same clients support different link colors (LC) as defined in the RFC 6551.  
+
+Inside the rpl folder, there is an alteration of contiki/rpl to support link color:
 Add the directory rpl into contiki/core/net/rpl and substitute the original. You now have:
 Three (3) objective functions instead of two. 
 The new one is MRHOF2. It is the same like the original MRHOF, but, the basic function best_parent() is altered:
@@ -12,6 +17,9 @@ To choose this new OF, you should declare it inside the project-conf.h
 
 Other minor alterations exist in many files. They all have the comment //George at the beggining.
 Remember that Link Color (LC) is mentioned in IANA, but not implemented by default.
+
+Changes in rpl-conf.h
+#define RPL_SUPPORTED_OFS {&rpl_of0, &rpl_mrhof, &rpl_mrhof2, &rpl_mrhof10}
 
 Combine this new RPL with the code in the folder coral-rpl-udp-of which has three (3) different types of nodes inside:
 a server sink, a mobile node, and a static node. If you alter the color of a family of nodes (node_color = RPL_DAG_MC_LC_RED) those nodes should be prefered as parents. There are more colors in rpl.h, alter them as needed.
