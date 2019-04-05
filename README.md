@@ -49,6 +49,7 @@ Remember that enabling the Metric Container MC, and definining as Link color (LC
 #define RPL_CONF_DAG_MC RPL_DAG_MC_LC // Enable MC
 #endif 
 
-The first paper implementing some of the above was presented in Globecom 2017. It can be found in http://swn.uom.gr/storage/app/media/publications/conferences/2018/globecom2018-rpl.pdf.
+The demo paper describing the CORAL console used to run the above, can be found in https://youtu.be/_2QHdlCCfzk 
+The first paper implementing some of the above was presented in Globecom 2017. It can be found in https://bit.ly/2CWfbEG. 
 
 An early version of the paper implementing this can be found here.
