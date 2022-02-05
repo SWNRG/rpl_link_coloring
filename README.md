@@ -52,4 +52,4 @@ Remember that enabling the Metric Container MC, and definining as Link color (LC
 The demo paper describing the CORAL console used to run the above, can be found in https://youtu.be/_2QHdlCCfzk 
 The first paper implementing some of the above was presented in Globecom 2017. It can be found in https://bit.ly/2CWfbEG. 
 
-An early version of the paper implementing this can be found here.
+An early version of the paper implementing this can be found in https://ieeexplore.ieee.org/document/8832178.
